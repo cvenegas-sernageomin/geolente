@@ -79,7 +79,6 @@ async function cargarDEM(A, progreso) {
   const y0 = Math.floor(lat2ty(latN, z)), y1 = Math.floor(lat2ty(latS, z));
   const nx = x1 - x0 + 1, ny = y1 - y0 + 1, W = nx * 256;
   const data = new Float32Array(nx * ny * 65536).fill(NaN);
-  const cv = new OffscreenCanvas(256, 256), ctx = cv.getContext('2d', { willReadFrequently: true });
   let hechas = 0, fallidas = 0;
   const trabajos = [];
   for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) trabajos.push([tx, ty]);
@@ -87,18 +86,44 @@ async function cargarDEM(A, progreso) {
     try {
       const r = await fetch(`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${tx}/${ty}.png`);
       if (!r.ok) throw new Error(r.status);
-      const bmp = await createImageBitmap(await r.blob());
-      ctx.drawImage(bmp, 0, 0);
-      const px = ctx.getImageData(0, 0, 256, 256).data;
+      const png = await decodificarPNG(await r.arrayBuffer());
+      const px = png.px, bpp = png.bpp;
       const ox = (tx - x0) * 256, oy = (ty - y0) * 256;
       for (let j = 0; j < 256; j++) for (let i = 0; i < 256; i++) {
-        const k = (j * 256 + i) * 4;
+        const k = (j * 256 + i) * bpp;
         data[(oy + j) * W + ox + i] = px[k] * 256 + px[k + 1] + px[k + 2] / 256 - 32768;
       }
     } catch { fallidas++; }
     progreso?.(++hechas / trabajos.length);
   }));
   Object.assign(DEM, { z, x0, y0, nx, ny, data, fallidas });
+}
+// Decodificador PNG mínimo (8 bits, RGB o RGBA). No se usa canvas.getImageData porque Brave (y otros navegadores
+// con protección anti-huella) le suman ruido a los píxeles: en Terrarium ±1 en el rojo son ±256 m → "conos" en el relieve.
+async function decodificarPNG(buf) {
+  const dv = new DataView(buf), idat = [];
+  let p = 8, w = 0, h = 0, bd = 0, ct = 0;
+  while (p + 8 <= buf.byteLength) {
+    const len = dv.getUint32(p), tipo = String.fromCharCode(dv.getUint8(p + 4), dv.getUint8(p + 5), dv.getUint8(p + 6), dv.getUint8(p + 7));
+    if (tipo === 'IHDR') { w = dv.getUint32(p + 8); h = dv.getUint32(p + 12); bd = dv.getUint8(p + 16); ct = dv.getUint8(p + 17); }
+    else if (tipo === 'IDAT') idat.push(new Uint8Array(buf, p + 8, len));
+    else if (tipo === 'IEND') break;
+    p += 12 + len;
+  }
+  if (bd !== 8 || (ct !== 2 && ct !== 6)) throw new Error('PNG no soportado');
+  const raw = new Uint8Array(await new Response(new Blob(idat).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
+  const bpp = ct === 6 ? 4 : 3, st = w * bpp, out = new Uint8Array(h * st);
+  for (let y = 0; y < h; y++) {
+    const f = raw[y * (st + 1)], src = y * (st + 1) + 1, o = y * st;
+    for (let x = 0; x < st; x++) {
+      const a = x >= bpp ? out[o + x - bpp] : 0, b = y ? out[o - st + x] : 0, c = x >= bpp && y ? out[o - st + x - bpp] : 0;
+      let v = raw[src + x];
+      if (f === 1) v += a; else if (f === 2) v += b; else if (f === 3) v += (a + b) >> 1;
+      else if (f === 4) { const q = a + b - c, pa = Math.abs(q - a), pb = Math.abs(q - b), pc = Math.abs(q - c); v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c; }
+      out[o + x] = v & 255;
+    }
+  }
+  return { w, h, bpp, px: out };
 }
 function elevLL(lon, lat) {
   const W = DEM.nx * 256, H = DEM.ny * 256;
@@ -626,7 +651,7 @@ function posicionarEtiquetas(medir) {
     const dx = sp.x - e.w / 2 < 8 ? 8 + e.w / 2 - sp.x : sp.x + e.w / 2 > innerWidth - 8 ? innerWidth - 8 - e.w / 2 - sp.x : 0;
     for (let intento = 0; intento < (esCumbre ? 1 : 4) && !ok; intento++, alto += e.h + 8) {
       const caja = { x0: sp.x + dx - e.w / 2, x1: sp.x + dx + e.w / 2, y0: sp.y - alto - e.h, y1: sp.y - alto };
-      ok = !colocadas.some(c => caja.x0 < c.x1 + 6 && caja.x1 > c.x0 - 6 && caja.y0 < c.y1 + 4 && caja.y1 > c.y0 - 4);
+      ok = caja.y0 > 64 && !colocadas.some(c => caja.x0 < c.x1 + 6 && caja.x1 > c.x0 - 6 && caja.y0 < c.y1 + 4 && caja.y1 > c.y0 - 4);
       if (ok) colocadas.push(caja);
     }
     if (!ok) { e.el.style.opacity = 0; continue; }
@@ -875,6 +900,7 @@ function bucle(t) {
   if (!renderer || $('#escena').hidden) return;
   if (ESC.modo === 'ar') {
     if (S.tiene) { S.qDisp.slerp(S.qObj, 0.35); camera.quaternion.copy(S.qDisp); }
+    else camera.rotation.set(VISTA.pitch * Math.PI / 180, -VISTA.yaw * Math.PI / 180, 0, 'YXZ'); // sin sensores: se apunta con el dedo
   } else {
     camera.rotation.set(VISTA.pitch * Math.PI / 180, -VISTA.yaw * Math.PI / 180, 0, 'YXZ');
   }
@@ -891,21 +917,23 @@ function instalarGestos() {
   const el = $('#escena'); let arr = null, pinza = null;
   el.addEventListener('pointerdown', e => {
     if (e.target.closest('.etq, button, #ficha, .panel, #mirando, #pisando')) return;
-    arr = { x: e.clientX, y: e.clientY, yaw: ESC.modo === 'ar' ? S.yawUsuario : VISTA.yaw, pitch: ESC.modo === 'ar' ? S.pitchUsuario : VISTA.pitch };
+    const conSensores = ESC.modo === 'ar' && S.tiene;
+    arr = { x: e.clientX, y: e.clientY, yaw: conSensores ? S.yawUsuario : VISTA.yaw, pitch: conSensores ? S.pitchUsuario : VISTA.pitch };
     el.setPointerCapture(e.pointerId);
   });
   el.addEventListener('pointermove', e => {
     if (!arr) return;
+    if (!innerHeight) return;
     const gpp = camera.fov / innerHeight; // grados por píxel
     const dx = (e.clientX - arr.x) * gpp, dy = (e.clientY - arr.y) * gpp;
-    if (ESC.modo === 'ar') {
+    if (ESC.modo === 'ar' && S.tiene) {
       if (!calibrando) return;
       S.yawUsuario = arr.yaw - dx; S.pitchUsuario = arr.pitch - dy;
     } else {
       VISTA.yaw = (arr.yaw - dx + 360) % 360; VISTA.pitch = Math.max(-45, Math.min(45, arr.pitch + dy));
     }
   });
-  const fin = () => { if (arr && ESC.modo === 'ar' && calibrando) { guardar('yaw', S.yawUsuario.toFixed(2)); guardar('pitch', S.pitchUsuario.toFixed(2)); } arr = null; };
+  const fin = () => { if (arr && ESC.modo === 'ar' && S.tiene && calibrando) { guardar('yaw', S.yawUsuario.toFixed(2)); guardar('pitch', S.pitchUsuario.toFixed(2)); } arr = null; };
   el.addEventListener('pointerup', fin); el.addEventListener('pointercancel', fin);
   el.addEventListener('wheel', e => {
     if (ESC.modo === 'ar') return;
@@ -915,7 +943,7 @@ function instalarGestos() {
   el.addEventListener('touchmove', e => {
     if (!pinza || e.touches.length !== 2) return;
     const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY), r = pinza.d / d;
-    if (ESC.modo === 'ar') { if (calibrando) { CFG.fovLargo = Math.max(40, Math.min(90, pinza.fl * r)); $('#r-fov').value = CFG.fovLargo; ajustarTamano(); } }
+    if (ESC.modo === 'ar') { if (calibrando || !S.tiene) { CFG.fovLargo = Math.max(40, Math.min(90, pinza.fl * r)); $('#r-fov').value = CFG.fovLargo; ajustarTamano(); } }
     else { CFG.fovExplorar = Math.max(15, Math.min(80, pinza.f * r)); ajustarTamano(); }
   }, { passive: true });
   el.addEventListener('touchend', () => { pinza = null; guardar('fov', CFG.fovLargo); });
@@ -965,7 +993,15 @@ async function empezarAR() {
     await abrirEn(c.latitude, c.longitude, 'ar');
     $('#gps').textContent = `± ${nf0.format(c.accuracy)} m`;
     vigilarGPS();
-    setTimeout(() => { if (!S.tiene) toast('Este dispositivo no entrega la orientación: usa 🎯 Ajustar o el modo explorar.', 6000); else if (!S.absoluto) toast('Sin brújula absoluta: alinea con 🎯 Ajustar.', 6000); }, 2500);
+    setTimeout(async () => {
+      if (!S.tiene) {
+        const brave = await navigator.brave?.isBrave?.().catch(() => false);
+        VISTA.pitch = 0;
+        toast(brave
+          ? 'Brave bloquea los sensores de orientación. Arrastra con el dedo para apuntar, o abre GeoLente en Chrome para que siga tus movimientos.'
+          : 'Tu teléfono no entrega la orientación. Arrastra con el dedo para apuntar el dibujo a los cerros.', 9000);
+      } else if (!S.absoluto) toast('Sin brújula absoluta: alinea con 🎯 Ajustar.', 6000);
+    }, 2500);
   } catch (err) {
     console.error(err); cargando();
     volverInicio();
