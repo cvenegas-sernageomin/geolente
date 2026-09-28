@@ -723,7 +723,7 @@ function actualizarMira(t) {
     prevD = d; d += 15 + d * 0.012;
   }
   const el = $('#mirando');
-  if (!hit || (ESC.modo === 'ar' && hit.distanceTo(c) < CFG.fadeCerca)) {
+  if (!hit) { // también cuenta el suelo cercano: mirar hacia abajo muestra la unidad a tus pies
     miraActual = null; el.classList.remove('activo');
     el.innerHTML = `<span class="mir-vacio">Apunta la mira ⊕ a un cerro para saber de qué está hecho</span>`;
     return;
@@ -737,7 +737,8 @@ function actualizarMira(t) {
   el.classList.add('activo');
   const u = cod && UNI[cod], cat = u && (CATEGORIAS[u.cat] || CATEGORIAS.sininfo);
   el.style.setProperty('--c', u ? u.color : '#ff5a36');
-  el.innerHTML = (u ? `<span class="mir-ico">${cat.ico}</span><span class="mir-txt"><small>Estás mirando · a ${fmtDist(dist)}</small>
+  const donde = dist < 60 ? 'El suelo a tus pies' : `Estás mirando · a ${fmtDist(dist)}`;
+  el.innerHTML = (u ? `<span class="mir-ico">${cat.ico}</span><span class="mir-txt"><small>${donde}</small>
       <b>${esc(cat.nombre)}</b><em>${esc(u.ma ? fmtRango(u, true) : cat.lema)}</em></span>` : `<span class="mir-ico">⚡</span><span class="mir-txt"><small>Estás mirando · a ${fmtDist(dist)}</small><b>Una falla</b></span>`)
     + (falla != null && u ? `<span class="mir-falla">⚡ falla cerca</span>` : '') + `<span class="mir-mas">›</span>`;
 }
