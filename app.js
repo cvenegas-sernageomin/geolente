@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import { Line2 } from './vendor/three/lines/Line2.js';
 import { LineMaterial } from './vendor/three/lines/LineMaterial.js';
 import { LineGeometry } from './vendor/three/lines/LineGeometry.js';
+import { LineSegments2 } from './vendor/three/lines/LineSegments2.js';
+import { LineSegmentsGeometry } from './vendor/three/lines/LineSegmentsGeometry.js';
 import { CATEGORIAS, datoMarino, contextoEdad, periodo, era, FALLA, svgFalla } from './contenido.js';
 
 const $ = s => document.querySelector(s);
@@ -11,10 +13,11 @@ const params = new URLSearchParams(location.search);
 const R_TIERRA = 6371000, REFRACCION = 0.13;
 
 const CFG = {
-  alcance: +(leer('alcance') || 25000), nGrid: 321, tex: 2048, ojo: 1.7,
+  alcance: +(leer('alcance') || 25000), nGrid: 481, tex: 2048, ojo: 1.7,
   fadeCerca: 220, fadeLejos: 600, opacidad: +(leer('opacidad') || 0.5),
   fovLargo: +(leer('fov') || 68), // FOV de la cámara del teléfono en su lado largo (grados)
   fallas: leer('fallas') !== '0', etiquetas: leer('etiquetas') !== '0',
+  perfil: leer('perfil') !== '0', cumbres: leer('cumbres') !== '0',
 };
 
 export const LUGARES = [
@@ -70,7 +73,7 @@ const lon2tx = (lon, z) => (lon + 180) / 360 * 2 ** z;
 const lat2ty = (lat, z) => { const r = lat * Math.PI / 180; return (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * 2 ** z; };
 
 async function cargarDEM(A, progreso) {
-  const z = A > 30000 ? 10 : A > 14000 ? 11 : 12;
+  const z = A > 30000 ? 11 : 12; // z12 ≈ 30 m: la forma de los cerros tiene que calzar
   const [lonW, latS] = aLL(-A * 1.05, -A * 1.05), [lonE, latN] = aLL(A * 1.05, A * 1.05);
   const x0 = Math.floor(lon2tx(lonW, z)), x1 = Math.floor(lon2tx(lonE, z));
   const y0 = Math.floor(lat2ty(latN, z)), y1 = Math.floor(lat2ty(latS, z));
@@ -113,11 +116,12 @@ function hLocal(e, n) {
 }
 
 // ------------------------------------------------------------------ datos geológicos
-let UNI = null, INDICE = null, FALLAS = null, DECL = null;
+let UNI = null, INDICE = null, FALLAS = null, DECL = null, CUMBRES = [];
 async function cargarBase() {
   const [u, i, f, d] = await Promise.all(['data/unidades.json', 'data/geo/index.json', 'data/fallas.json', 'data/declinacion.json']
     .map(p => fetch(p).then(r => r.json())));
   UNI = u; INDICE = new Set(i.teselas); FALLAS = f; DECL = d;
+  try { CUMBRES = (await (await fetch('data/cumbres.json')).json()).c; } catch { CUMBRES = []; }
   // "S I" del mapa 1:1M = lagos y glaciares; se separan con el relieve (ver clasificarAguaHielo)
   UNI['S I·lago'] = { ...u['S I'], cod: 'S I·lago', cat: 'lago', titulo: 'Lago', edad: '', color: '#6FAFD9', desc: 'Cuerpo de agua: el mapa no asigna una unidad de roca.' };
   UNI['S I·glaciar'] = { ...u['S I'], cod: 'S I·glaciar', cat: 'glaciaractual', titulo: 'Glaciar', edad: '', color: '#E4F0F8', desc: 'Cuerpo de hielo: el mapa no asigna una unidad de roca.' };
@@ -209,6 +213,7 @@ function ajustarTamano() {
   camera.fov = fovVertical();
   camera.updateProjectionMatrix();
   grupoFallas?.children.forEach(l => l.material.resolution.set(w, h));
+  grupoPerfil?.children.forEach(l => l.material.resolution.set(w, h));
 }
 // FOV vertical visible en pantalla, a partir del FOV del lado largo del video y del recorte "cover".
 function fovVertical() {
@@ -236,7 +241,7 @@ void main(){
   if (modoAR > 0.5) {
     float a = t.a * opacidad * fade; if (a < 0.02) discard;
     vec3 cc = mix(vec3(dot(t.rgb, vec3(0.299,0.587,0.114))), t.rgb, 0.82);
-    gl_FragColor = vec4(cc * (0.78 + 0.34 * sh), a);
+    gl_FragColor = vec4(cc, a);
   } else {
     vec3 base = vec3(0.60, 0.57, 0.52);
     vec3 tc = mix(vec3(dot(t.rgb, vec3(0.299,0.587,0.114))), t.rgb, 0.8);
@@ -275,7 +280,7 @@ function pintarTextura(A) {
 }
 
 function construirTerreno(A) {
-  const N = CFG.nGrid, a = 0.33;
+  const N = CFG.nGrid, a = 0.4;
   const s = u => A * u * (a + (1 - a) * Math.abs(u)); // malla más densa cerca del observador
   const pos = new Float32Array(N * N * 3), uv = new Float32Array(N * N * 2), idx = [];
   for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
@@ -376,13 +381,117 @@ function construirCandidatos(A) {
   }
 }
 
+// ------------------------------------------------------------------ perfil de los cerros (estilo PeakVisor)
+// Para cada azimut (0,1°) se marcha hacia afuera por el relieve guardando el máximo ángulo de elevación.
+// Cuando el terreno visible empieza a quedar oculto, el último punto visible es una cresta que tapa lo de atrás:
+// esas crestas, unidas entre azimuts vecinos, son las líneas del perfil que se calzan con los cerros reales.
+let grupoPerfil = null, perfilPos = null;
+const MARGEN_OJO = 6, CERCA_IGNORADO = 200;
+async function calcularPerfil(gen) {
+  const c = camera.position.clone(), A = CFG.alcance * 0.97, NCOL = 3600, cols = new Array(NCOL);
+  // se ignoran los primeros 200 m y se suma un margen al ojo: el DEM de 30 m cerca de uno (casas, errores de metros) taparía todo
+  const ds = []; for (let d = 200; d < A * 1.42; d += Math.max(12, d * 0.0035)) ds.push(d);
+  const ojoY = c.y + MARGEN_OJO;
+  for (let i0 = 0; i0 < NCOL; i0 += 240) {
+    for (let i = i0; i < Math.min(NCOL, i0 + 240); i++) {
+      const az = i / NCOL * 2 * Math.PI, se = Math.sin(az), co = Math.cos(az), pts = [];
+      let maxT = -Infinity, vis = true, ult = null, cand = null, hondo = 0;
+      // una cresta cuenta solo si lo que tapa queda al menos 25 m bajo la visual (evita el "ruido" de lomitas y del fondo de valle)
+      const acepta = (cd, d) => cd && cd.d > 150 && hondo >= 25 && d > cd.d * 1.04;
+      for (const d of ds) {
+        const e = c.x + se * d, n = -c.z + co * d;
+        if (Math.abs(e) > A || Math.abs(n) > A) break;
+        const h = hLocal(e, n), t = (h - ojoY) / d;
+        if (t >= maxT) {
+          if (!vis && acepta(cand, d)) pts.push(cand);
+          cand = null; maxT = t; vis = true; ult = { d, h, e, n, t };
+        } else {
+          if (vis) { cand = ult; vis = false; hondo = 0; }
+          hondo = Math.max(hondo, (maxT - t) * d);
+        }
+      }
+      if (!vis && acepta(cand, Infinity)) { cand.cielo = true; pts.push(cand); } // la última cresta es el horizonte
+      cols[i] = pts;
+    }
+    await new Promise(r => setTimeout(r, 0));
+    if (gen !== generacion) return;
+  }
+  // unir crestas de columnas vecinas con distancia y elevación parecidas
+  for (let i = 0; i < NCOL; i++) {
+    const sig = cols[(i + 1) % NCOL];
+    for (const p of cols[i]) {
+      let mejor = null, md = 1e9;
+      for (const q of sig) {
+        if (q.prev) continue;
+        const rd = Math.abs(q.d - p.d) / p.d, dt = Math.abs(q.t - p.t);
+        if (rd < 0.09 && dt < 0.012 && rd + dt * 8 < md) { md = rd + dt * 8; mejor = q; }
+      }
+      if (mejor) { p.next = mejor; mejor.prev = p; }
+    }
+  }
+  // recorrer cadenas y descartar las cortas (< 0,8°)
+  const pos = [], col = [], posC = [], colC = [];
+  for (let i = 0; i < NCOL; i++) for (const p0 of cols[i]) {
+    if (p0.prev || p0.hecho) continue;
+    const cadena = [p0]; p0.hecho = true;
+    let q = p0.next; while (q && !q.hecho) { q.hecho = true; cadena.push(q); q = q.next; }
+    if (q === p0) cadena.push(p0); // vuelta completa (horizonte cerrado)
+    if (cadena.length < 9) continue;
+    for (let k = 0; k < cadena.length - 1; k++) {
+      const a = cadena[k], b2 = cadena[k + 1], cielo = a.cielo && b2.cielo;
+      const b = cielo ? 1 : Math.max(0.5, 1 - a.d / (CFG.alcance * 1.6)); // lo lejano, más tenue
+      (cielo ? posC : pos).push(a.e, a.h + 2, -a.n, b2.e, b2.h + 2, -b2.n);
+      (cielo ? colC : col).push(b, b, b, b, b, b);
+    }
+  }
+  if (grupoPerfil) { scene.remove(grupoPerfil); grupoPerfil.traverse(x => { x.geometry?.dispose(); x.material?.dispose(); }); }
+  grupoPerfil = new THREE.Group();
+  for (const [P, C, ancho] of [[pos, col, 1.6], [posC, colC, 2.8]]) {
+    if (!P.length) continue;
+    const g = new LineSegmentsGeometry(); g.setPositions(P); g.setColors(C);
+    // borde oscuro debajo de la línea blanca: se lee tanto sobre cielo claro como sobre roca oscura
+    const mb = new LineMaterial({ color: 0x0b1018, linewidth: ancho + 2.4, transparent: true, opacity: 0.55, depthTest: false, depthWrite: false });
+    const m = new LineMaterial({ vertexColors: true, linewidth: ancho, transparent: true, opacity: 0.95, depthTest: false, depthWrite: false });
+    for (const [mat, orden] of [[mb, 5], [m, 6]]) {
+      mat.resolution.set(innerWidth, innerHeight);
+      const l = new LineSegments2(g, mat); l.renderOrder = orden; grupoPerfil.add(l);
+    }
+  }
+  grupoPerfil.visible = CFG.perfil || calibrando;
+  scene.add(grupoPerfil);
+  perfilPos = c;
+}
+
+// Las coordenadas de GeoNames pueden estar corridas: cada cumbre se lleva al punto más alto del relieve cercano
+// (300 m para cerros, lo indicado en el dato para volcanes agregados a mano).
+function prepararCumbres(A) {
+  ESC.cumbres = [];
+  const puestas = [];
+  for (const [lon, lat, ele, nombre, volcan, radio] of CUMBRES) {
+    let [e, n] = aEN(lon, lat);
+    if (Math.abs(e) > A * 0.95 || Math.abs(n) > A * 0.95) continue;
+    const r = radio || 300, paso = Math.max(25, r / 14);
+    let hm = hLocal(e, n), em = e, nm = n;
+    for (let dy = -r; dy <= r; dy += paso) for (let dx = -r; dx <= r; dx += paso) {
+      if (dx * dx + dy * dy > r * r) continue;
+      const h = hLocal(e + dx, n + dy); if (h > hm) { hm = h; em = e + dx; nm = n + dy; }
+    }
+    if (Math.hypot(em, nm) < 250 || puestas.some(([a, b]) => Math.hypot(a - em, b - nm) < 150)) continue;
+    puestas.push([em, nm]);
+    const [lon2, lat2] = aLL(em, nm);
+    ESC.cumbres.push({ nombre, volcan, lon: lon2, lat: lat2, ele: ele ?? Math.round(elevLL(lon2, lat2)), pos: new THREE.Vector3(em, hm + 6, -nm) });
+  }
+}
+
 // ¿se ve el punto p desde la cámara? (marcha sobre el relieve)
 const _v = new THREE.Vector3();
+const _c = new THREE.Vector3();
 function visible(p) {
-  const c = camera.position, d = c.distanceTo(p), pasos = Math.min(70, Math.max(10, d / 140));
+  _c.copy(camera.position); _c.y += MARGEN_OJO;
+  const d = _c.distanceTo(p), pasos = Math.min(70, Math.max(10, d / 140)), t0 = Math.min(0.5, CERCA_IGNORADO / d);
   for (let k = 1; k < pasos; k++) {
-    const t = k / pasos * 0.985;
-    _v.lerpVectors(c, p, t);
+    const t = t0 + (k / pasos) * (0.985 - t0);
+    _v.lerpVectors(_c, p, t);
     if (hLocal(_v.x, -_v.z) > _v.y + 4) return false;
   }
   return true;
@@ -415,9 +524,13 @@ function htmlEtiquetaFalla(fi) {
   return `<div class="etq-caja"><span class="etq-ico">⚡</span><span class="etq-txt"><b>${esc(f.n ? 'Falla ' + f.n : 'Falla activa')}</b>
     <small>${esc(f.s ? 'falla ' + f.s : 'falla')}${f.act ? ' · actividad ' + f.act : ''}</small></span></div><div class="etq-palo"></div><div class="etq-punto"></div>`;
 }
+function htmlCumbre(k) {
+  const d = Math.hypot(k.pos.x - camera.position.x, k.pos.z - camera.position.z);
+  return `<div class="etq-caja"><b>${k.volcan ? '🌋 ' : ''}${esc(k.nombre)}</b><small>${nf0.format(k.ele)} m · ${fmtDist(d)}</small></div><div class="etq-palo"></div>`;
+}
 function crearEtiqueta(clave, html, color, alTocar) {
   const el = document.createElement('div');
-  el.className = 'etq' + (clave.startsWith('§') ? ' etq-falla' : '');
+  el.className = 'etq' + (clave.startsWith('§') ? ' etq-falla' : clave.startsWith('▲') ? ' cum' : '');
   el.style.setProperty('--c', color);
   el.innerHTML = html;
   el.addEventListener('click', ev => { ev.stopPropagation(); alTocar(); });
@@ -449,6 +562,23 @@ function seleccionarEtiquetas(t) {
       }
       quiero.set(cod, elegido[0].pos);
     }
+    if (CFG.cumbres && ESC.cumbres) {
+      // cumbres: las más destacadas en pantalla (mayor ángulo de elevación), separadas al menos 90 px
+      const vis = [], sp4 = { x: 0, y: 0 }, c0 = camera.position;
+      ESC.cumbres.forEach((k, i) => {
+        if (!enPantalla(k.pos, sp4) || sp4.y < 90 || sp4.y > innerHeight - 160) return;
+        const d = Math.hypot(k.pos.x - c0.x, k.pos.z - c0.z);
+        vis.push({ i, x: sp4.x, t: (k.pos.y - c0.y) / d, k });
+      });
+      vis.sort((a, b) => b.t - a.t);
+      const puestas = [];
+      for (const v of vis) {
+        if (puestas.length >= 9) break;
+        if (puestas.some(p => Math.abs(p.x - v.x) < 90)) continue;
+        if (!visible(v.k.pos)) continue;
+        puestas.push(v); quiero.set('▲' + v.i, v.k.pos);
+      }
+    }
     if (CFG.fallas) {
       // una etiqueta por falla con nombre (el catálogo divide muchas fallas en varios tramos)
       const cf = new Map(), sp2 = { x: 0, y: 0 };
@@ -474,6 +604,7 @@ function seleccionarEtiquetas(t) {
     let e = ETQ.get(k);
     if (!e) {
       if (k.startsWith('§')) { const fi = FI_DE.get(k); e = crearEtiqueta(k, htmlEtiquetaFalla(fi), '#ff5a36', () => abrirFichaFalla(fi)); }
+      else if (k.startsWith('▲')) { const i = +k.slice(1); e = crearEtiqueta(k, htmlCumbre(ESC.cumbres[i]), '#fff', () => abrirFichaCumbre(i)); }
       else e = crearEtiqueta(k, htmlEtiqueta(k), UNI[k].color, () => abrirFicha(k));
       ETQ.set(k, e);
     }
@@ -484,14 +615,16 @@ function seleccionarEtiquetas(t) {
 function posicionarEtiquetas(medir) {
   const colocadas = [], sp = { x: 0, y: 0 };
   // las fallas primero (menos), luego unidades en orden de inserción
-  const lista = [...ETQ.entries()].sort((a, b) => (b[0].startsWith('§') ? 1 : 0) - (a[0].startsWith('§') ? 1 : 0));
-  for (const [, e] of lista) {
+  const prio = k => k.startsWith('▲') ? 2 : k.startsWith('§') ? 1 : 0;
+  const lista = [...ETQ.entries()].sort((a, b) => prio(b[0]) - prio(a[0]));
+  for (const [k, e] of lista) {
     if (!e.pos || !enPantalla(e.pos, sp)) { e.el.style.opacity = 0; continue; }
     if (!e.w || medir) { const c = e.el.querySelector('.etq-caja'); e.w = c.offsetWidth; e.h = c.offsetHeight; }
-    let alto = 46, ok = false;
+    const esCumbre = k.startsWith('▲');
+    let alto = esCumbre ? 16 : 46, ok = false;
     // desplazamiento horizontal para que la caja no se salga de la pantalla (el palito sigue en el punto)
     const dx = sp.x - e.w / 2 < 8 ? 8 + e.w / 2 - sp.x : sp.x + e.w / 2 > innerWidth - 8 ? innerWidth - 8 - e.w / 2 - sp.x : 0;
-    for (let intento = 0; intento < 4 && !ok; intento++, alto += e.h + 8) {
+    for (let intento = 0; intento < (esCumbre ? 1 : 4) && !ok; intento++, alto += e.h + 8) {
       const caja = { x0: sp.x + dx - e.w / 2, x1: sp.x + dx + e.w / 2, y0: sp.y - alto - e.h, y1: sp.y - alto };
       ok = !colocadas.some(c => caja.x0 < c.x1 + 6 && caja.x1 > c.x0 - 6 && caja.y0 < c.y1 + 4 && caja.y1 > c.y0 - 4);
       if (ok) colocadas.push(caja);
@@ -590,6 +723,19 @@ function abrirFichaFalla(fi) {
   mostrarFicha();
   marcarVisto('f', f.n || 'falla-' + fi);
 }
+function abrirFichaCumbre(i) {
+  const k = ESC.cumbres[i]; if (!k) return;
+  const d = Math.hypot(k.pos.x - camera.position.x, k.pos.z - camera.position.z);
+  const cod = unidadEn(k.lon, k.lat), u = cod && UNI[cod], c = u && (CATEGORIAS[u.cat] || CATEGORIAS.sininfo);
+  $('#ficha-cuerpo').innerHTML = `
+    <header class="fi-cab" style="--c:#8fa7c0"><span class="fi-ico">${k.volcan ? '🌋' : '⛰️'}</span><div><small>${k.volcan ? 'Volcán' : 'Cumbre'} · ${nf0.format(k.ele)} m de altura</small><h2>${esc(k.nombre)}</h2></div></header>
+    <section><p class="grande">A ${fmtDist(d)} de ti</p></section>
+    ${u ? `<section><h3>🪨 ¿De qué está hecha su cumbre?</h3>
+      <button class="col-item" id="fi-roca"><i style="background:${u.color}"></i><span>${c.ico} <b>${esc(c.nombre)}</b><small>${esc(u.titulo)}${u.ma ? ' · ' + esc(fmtRango(u, true)) : ''}</small></span></button></section>` : ''}
+    <section class="oficial"><p>Nombre y altura: GeoNames (CC BY 4.0); posición ajustada al relieve. Roca: Mapa Geológico de Chile 1:1.000.000, SERNAGEOMIN.</p></section>`;
+  if (u) $('#fi-roca').onclick = () => abrirFicha(cod);
+  mostrarFicha();
+}
 function mostrarFicha() { const el = $('#ficha'); el.hidden = false; el.scrollTop = 0; requestAnimationFrame(() => el.classList.add('abierta')); }
 function cerrarFicha() { const el = $('#ficha'); el.classList.remove('abierta'); setTimeout(() => el.hidden = true, 250); }
 
@@ -661,6 +807,7 @@ function vigilarGPS() {
     if (Math.hypot(e, n) > 2500) { toast('Te moviste bastante: recargando el mapa de este lugar…'); abrirEn(p.coords.latitude, p.coords.longitude, 'ar'); return; }
     if (Math.hypot(e - camera.position.x, n + camera.position.z) > 25) {
       camera.position.set(e, hLocal(e, n) + CFG.ojo, -n); actualizarPisando();
+      if (!perfilPos || Math.hypot(perfilPos.x - e, perfilPos.z + n) > 60) calcularPerfil(generacion);
     }
   }, () => { }, { enableHighAccuracy: true, maximumAge: 5000 });
 }
@@ -673,7 +820,7 @@ async function abrirEn(lat, lon, modo, rumbo = 0) {
   document.body.dataset.modo = modo;
   $('#inicio').hidden = true; $('#escena').hidden = false;
   if (!renderer) iniciarThree();
-  for (const o of [terrenoColor, terrenoProf, grupoFallas]) if (o) { scene.remove(o); o.traverse?.(x => { x.geometry?.dispose(); x.material?.dispose(); }); }
+  for (const o of [terrenoColor, terrenoProf, grupoFallas, grupoPerfil]) if (o) { scene.remove(o); o.traverse?.(x => { x.geometry?.dispose(); x.material?.dispose(); }); }
   texMapa?.dispose();
   for (const [, e] of ETQ) e.el.remove(); ETQ.clear();
   try {
@@ -699,10 +846,12 @@ async function abrirEn(lat, lon, modo, rumbo = 0) {
     construirTerreno(A);
     construirFallas(A);
     construirCandidatos(A);
+    prepararCumbres(A);
     camera.position.set(0, hLocal(0, 0) + (modo === 'ar' ? CFG.ojo : 25), 0); // explorar: vista de dron bajo, evita que el plano cercano corte el suelo
     if (modo !== 'ar') { VISTA.yaw = rumbo; VISTA.pitch = -2; }
     actualizarModoShader(); ajustarTamano();
     ESC.listo = true; cargando();
+    calcularPerfil(gen);
     actualizarPisando();
     $('#lugar').textContent = modo === 'ar' ? 'Tu ubicación' : (LUGARES.find(l => Math.abs(l.lat - lat) < 1e-3 && Math.abs(l.lon - lon) < 1e-3)?.n || `${nf1.format(lat)}°, ${nf1.format(lon)}°`);
     if (!leer('visto-ayuda')) { mostrarAyuda(); guardar('visto-ayuda', '1'); }
@@ -773,8 +922,10 @@ function instalarGestos() {
 }
 function alternarCalibrar(on = !calibrando) {
   calibrando = on; document.body.classList.toggle('calibrando', on);
+  if (grupoPerfil) grupoPerfil.visible = CFG.perfil || on;
+  if (terrenoColor) terrenoColor.material.uniforms.opacidad.value = on ? Math.min(0.2, CFG.opacidad) : CFG.opacidad;
   $('#btn-calibrar').classList.toggle('activo', on);
-  if (on) toast('Arrastra el dibujo hasta que calce con los cerros reales. Pellizca para ajustar el tamaño.', 5000);
+  if (on) toast('Arrastra hasta que las líneas blancas calcen con el perfil de los cerros. Pellizca para ajustar el tamaño.', 5500);
 }
 function mostrarAyuda() {
   $('#ficha-cuerpo').innerHTML = `<header class="fi-cab" style="--c:#7cc4ff"><span class="fi-ico">🧭</span><div><small>Cómo usar GeoLente</small><h2>Lee los cerros como un geólogo</h2></div></header>
@@ -782,8 +933,9 @@ function mostrarAyuda() {
       <li><b>Apunta a los cerros.</b> Los colores muestran de qué roca está hecho cada cerro, según el mapa geológico oficial.</li>
       <li><b>Toca una etiqueta</b> para saber qué es, cuántos millones de años tiene y cómo reconocerla.</li>
       <li><b>Usa la mira ⊕</b> del centro: te dice qué estás mirando y a qué distancia.</li>
+      <li><b>Las líneas blancas dibujan el perfil de los cerros</b> (el horizonte y las crestas). Si no calzan con lo que ves, toca <b>🎯 Ajustar</b> y arrástralas hasta que coincidan: así sabrás exactamente qué cerro estás mirando.</li>
       <li><b>Las líneas rojas, naranjas y amarillas son fallas activas.</b> Las punteadas están inferidas o cubiertas.</li>
-      <li>Si el dibujo no calza con el paisaje, toca <b>🎯 Ajustar</b> y arrástralo. La brújula del teléfono puede fallar cerca de autos, rejas o edificios.</li>
+      <li>La brújula del teléfono puede fallar cerca de autos, rejas o edificios: por eso existe el ajuste.</li>
     </ol></section>
     <section class="leyenda-edades"><h3>Colores por edad</h3>
       <div class="ley"><i style="background:#FFF2AE"></i>Cuaternario (0–2,6 Ma)</div><div class="ley"><i style="background:#FFFF00"></i>Neógeno (2,6–23 Ma)</div>
@@ -791,7 +943,7 @@ function mostrarAyuda() {
       <div class="ley"><i style="background:#42AED0"></i>Jurásico (145–201 Ma)</div><div class="ley"><i style="background:#983999"></i>Triásico (201–252 Ma)</div>
       <div class="ley"><i style="background:#67A599"></i>Paleozoico (252–539 Ma)</div><div class="ley"><i style="background:#E8485A"></i>Rocas intrusivas (rojos: más oscuro, más antiguo)</div>
       <p class="aviso">Ma = millones de años. Los colores siguen la carta cronoestratigráfica internacional.</p></section>
-    <section class="oficial"><h3>Fuentes</h3><p>Mapa Geológico de Chile 1:1.000.000 (SERNAGEOMIN, 2003) · Catálogo de Fallas Activas de Chile CHAF v1 (Melnick, Maldonado y Contreras, 2020; CC BY 4.0) · Relieve: teselas Terrarium (AWS Open Data, SRTM y otros) · Declinación magnética: WMM2025 (NOAA/BGS).</p>
+    <section class="oficial"><h3>Fuentes</h3><p>Mapa Geológico de Chile 1:1.000.000 (SERNAGEOMIN, 2003) · Catálogo de Fallas Activas de Chile CHAF v1 (Melnick, Maldonado y Contreras, 2020; CC BY 4.0) · Nombres de cumbres: GeoNames (CC BY 4.0) · Relieve: teselas Terrarium (AWS Open Data, SRTM y otros) · Declinación magnética: WMM2025 (NOAA/BGS).</p>
     <p class="aviso">Herramienta de divulgación. Escala regional: no reemplaza cartas geológicas de detalle ni estudios de peligros geológicos.</p></section>`;
   mostrarFicha();
 }
@@ -846,6 +998,10 @@ function iniciarUI() {
   cF.onchange = () => { CFG.fallas = cF.checked; guardar('fallas', cF.checked ? '1' : '0'); if (grupoFallas) grupoFallas.visible = CFG.fallas; };
   const cE = $('#c-etiquetas'); cE.checked = CFG.etiquetas;
   cE.onchange = () => { CFG.etiquetas = cE.checked; guardar('etiquetas', cE.checked ? '1' : '0'); };
+  const cP = $('#c-perfil'); cP.checked = CFG.perfil;
+  cP.onchange = () => { CFG.perfil = cP.checked; guardar('perfil', cP.checked ? '1' : '0'); if (grupoPerfil) grupoPerfil.visible = CFG.perfil || calibrando; };
+  const cC = $('#c-cumbres'); cC.checked = CFG.cumbres;
+  cC.onchange = () => { CFG.cumbres = cC.checked; guardar('cumbres', cC.checked ? '1' : '0'); };
   const sA = $('#s-alcance'); sA.value = CFG.alcance;
   sA.onchange = () => { CFG.alcance = +sA.value; guardar('alcance', sA.value); if (O) abrirEn(O.lat, O.lon, ESC.modo, VISTA.yaw); };
   $('#btn-reset').onclick = () => { S.yawUsuario = 0; S.pitchUsuario = 0; CFG.fovLargo = 68; rFov.value = 68; guardar('yaw', 0); guardar('pitch', 0); guardar('fov', 68); ajustarTamano(); toast('Ajuste restablecido.'); };
@@ -860,4 +1016,4 @@ function iniciarUI() {
 iniciarUI();
 
 // para pruebas desde la consola
-window.GeoLente = { _orient: (a, b, g, abs = true, extra = {}) => onOrientacion({ alpha: a, beta: b, gamma: g, ...extra }, abs), rumboDe, ESC, CFG, VISTA, S, abrirEn, abrirFicha, abrirFichaFalla, abrirColeccion, get FALLAS() { return FALLAS; }, unidadEn: (lat, lon) => unidadEn(lon, lat), hLocal, get camera() { return camera; } };
+window.GeoLente = { calcularPerfil: () => calcularPerfil(generacion), get grupoPerfil() { return grupoPerfil; }, _orient: (a, b, g, abs = true, extra = {}) => onOrientacion({ alpha: a, beta: b, gamma: g, ...extra }, abs), rumboDe, ESC, CFG, VISTA, S, abrirEn, abrirFicha, abrirFichaFalla, abrirColeccion, get FALLAS() { return FALLAS; }, unidadEn: (lat, lon) => unidadEn(lon, lat), hLocal, get camera() { return camera; } };

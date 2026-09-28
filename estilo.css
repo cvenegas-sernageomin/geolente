@@ -161,3 +161,10 @@ body.calibrando #mira { border-color: #2f8cff; }
 #toast { position: fixed; left: 50%; bottom: calc(100px + var(--sib)); transform: translate(-50%, 20px); background: #1d2a3b; border: 1px solid var(--borde);
   border-radius: 12px; padding: 10px 14px; font-size: 14px; max-width: min(92vw, 480px); opacity: 0; pointer-events: none; transition: .25s; z-index: 40; text-align: center; }
 #toast.ver { opacity: 1; transform: translate(-50%, 0); }
+
+/* cumbres (estilo PeakVisor: texto blanco sobre el perfil) */
+.cum .etq-caja { background: none; border: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; padding: 0 4px;
+  flex-direction: column; align-items: center; gap: 0; text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,.8); animation: none; }
+.cum .etq-caja b { font-size: 13px; font-weight: 650; }
+.cum .etq-caja small { font-size: 10.5px; color: #e6edf5; }
+.cum .etq-palo { background: rgba(255,255,255,.9); width: 1px; left: 0; bottom: 0; height: var(--alto); }

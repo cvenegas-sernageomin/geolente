@@ -1,10 +1,10 @@
 // GeoLente: caché propia. Comparte origen con otras PWAs en github.io, así que SOLO borra cachés "geolente-*".
-const VER = 'geolente-v1';
+const VER = 'geolente-v2';
 const CACHE_APP = VER, CACHE_GEO = 'geolente-geo', CACHE_DEM = 'geolente-dem';
 const APP = ['./', 'index.html', 'estilo.css', 'app.js', 'contenido.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png',
   'vendor/three/three.module.min.js', 'vendor/three/three.core.js', 'vendor/three/lines/Line2.js', 'vendor/three/lines/LineGeometry.js',
   'vendor/three/lines/LineMaterial.js', 'vendor/three/lines/LineSegments2.js', 'vendor/three/lines/LineSegmentsGeometry.js',
-  'data/unidades.json', 'data/fallas.json', 'data/declinacion.json', 'data/geo/index.json'];
+  'data/unidades.json', 'data/fallas.json', 'data/declinacion.json', 'data/geo/index.json', 'data/cumbres.json'];
 const esMia = k => k.startsWith('geolente-');
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_APP).then(c => c.addAll(APP)).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(
