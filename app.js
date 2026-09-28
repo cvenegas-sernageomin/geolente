@@ -1156,7 +1156,65 @@ function iniciarUI() {
   if (sim) { const [la, lo, ru] = sim.split(',').map(Number); abrirEn(la, lo, 'explorar', ru || 0); }
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js');
 }
+// ------------------------------------------------------------------ instalar como app (igual que GeoParqueMet)
+// La invitación queda visible mientras no esté instalada; si el navegador no ofrece su diálogo
+// (iPhone, o Chrome tras un rechazo previo) se muestran los pasos manuales con una flecha al menú.
+const INSTALADA = ['standalone', 'fullscreen'].some(m => matchMedia(`(display-mode: ${m})`).matches) || navigator.standalone === true;
+const ES_IOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let pedidoInstalar = null, instaladaAhora = false;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); pedidoInstalar = e; mostrarInstalar(); });
+addEventListener('appinstalled', () => { pedidoInstalar = null; instaladaAhora = true; mostrarInstalar(); cerrarFicha(); toast('¡Listo! Abre GeoLente desde el nuevo ícono de tu teléfono.', 8000); });
+function mostrarInstalar() {
+  const ver = !INSTALADA && !instaladaAhora;
+  document.querySelectorAll('.btn-instalar').forEach(b => b.hidden = !ver);
+}
+const CAB_INSTALAR = `<header class="fi-cab" style="--c:#2f8cff"><span class="fi-ico">📲</span><div><small>Recomendado</small><h2>Instala GeoLente en tu teléfono</h2></div></header>
+  <section><p>Queda como una app: se abre en pantalla completa, sin la barra del navegador, y el mapa de los lugares que visites queda guardado para usarlo sin señal.</p></section>`;
+function hojaInstalar(cuerpo, flecha) {
+  $('#ficha-cuerpo').innerHTML = CAB_INSTALAR + cuerpo + (flecha ? `<div class="flecha-instalar ${flecha}" aria-hidden="true">${flecha.startsWith('arriba') ? '⬆' : '⬇'}</div>` : '');
+  mostrarFicha();
+  $('#ficha-cuerpo').querySelectorAll('.cerrar-hoja').forEach(b => b.onclick = cerrarFicha);
+  $('#hoja-instalar')?.addEventListener('click', () => { cerrarFicha(); instalar(); });
+}
+const ICO_COMPARTIR = '<svg class="ico-compartir" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M8 10H6v11h12V10h-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const pasos = l => `<section><ol class="pasos-inst">${l.map(x => `<li><span>${x}</span></li>`).join('')}</ol></section>
+  <section class="diag-acciones"><button class="btn primario cerrar-hoja">Entendido</button></section>`;
+function instalar() {
+  if (pedidoInstalar) {
+    pedidoInstalar.prompt();
+    pedidoInstalar.userChoice.then(r => { if (r.outcome === 'accepted') instaladaAhora = true; }).finally(() => { pedidoInstalar = null; mostrarInstalar(); });
+    return;
+  }
+  const ua = navigator.userAgent;
+  if (ES_IOS) {
+    const chrome = /CriOS/.test(ua), ipad = /ipad/i.test(ua) || navigator.platform === 'MacIntel';
+    hojaInstalar(pasos([
+      chrome ? `Toca el botón <b>Compartir</b> ${ICO_COMPARTIR} junto a la barra de direcciones` : `Toca el botón <b>Compartir</b> ${ICO_COMPARTIR} de Safari`,
+      'Desliza y elige <b>«Agregar a pantalla de inicio»</b> ➕', 'Abre <b>GeoLente</b> desde el nuevo ícono']), ipad || chrome ? 'arriba' : 'abajo');
+    return;
+  }
+  const samsung = /SamsungBrowser/.test(ua), firefox = /Firefox/.test(ua), movil = /Android/.test(ua), brave = !!navigator.brave;
+  const l = samsung ? ['Toca el menú <b>≡</b> abajo a la derecha', 'Elige <b>«Agregar página a»</b> y luego <b>«Pantalla de inicio»</b>', 'Abre <b>GeoLente</b> desde el nuevo ícono']
+    : firefox ? ['Toca el menú <b>⋮</b> del navegador', 'Elige <b>«Instalar»</b> o <b>«Agregar a pantalla de inicio»</b>', 'Abre <b>GeoLente</b> desde el nuevo ícono']
+    : movil ? [`Toca el menú <b>⋮</b> ${brave ? 'de Brave' : 'arriba a la derecha de Chrome'}`, 'Elige <b>«Instalar aplicación»</b> o <b>«Agregar a la pantalla principal»</b>', 'Confirma con <b>Instalar</b> y abre <b>GeoLente</b> desde el nuevo ícono']
+    : ['En la barra de direcciones toca el ícono <b>Instalar</b> 🖥️⬇ (a la derecha)', 'O abre el menú <b>⋮</b> → <b>«Transmitir, guardar y compartir»</b> → <b>«Instalar página como app»</b>', 'Confirma con <b>Instalar</b>'];
+  hojaInstalar(pasos(l), samsung ? 'abajo derecha' : movil && !brave ? 'arriba derecha' : '');
+}
+// Al abrir (una vez por visita) se ofrece instalar
+function ofrecerInstalar() {
+  if (INSTALADA || instaladaAhora || params.get('sim')) return;
+  try { if (sessionStorage.getItem('geolente:ofrecido')) return; sessionStorage.setItem('geolente:ofrecido', '1'); } catch { }
+  setTimeout(() => {
+    if (!$('#ficha').hidden || !$('#escena').hidden) return;
+    if (pedidoInstalar) hojaInstalar(`<section class="diag-acciones"><button class="btn primario" id="hoja-instalar">📲 Instalar ahora</button><button class="btn cerrar-hoja">Ahora no</button></section>`);
+    else instalar();
+  }, 1500);
+}
+
 iniciarUI();
+document.querySelectorAll('.btn-instalar').forEach(b => b.onclick = instalar);
+mostrarInstalar();
+ofrecerInstalar();
 
 // para pruebas desde la consola
 window.GeoLente = { get DEM2() { return DEM2; }, get DEM() { return DEM; }, calcularPerfil: () => calcularPerfil(generacion), get grupoPerfil() { return grupoPerfil; }, _orient: (a, b, g, abs = true, extra = {}) => onOrientacion({ alpha: a, beta: b, gamma: g, ...extra }, abs), rumboDe, ESC, CFG, VISTA, S, abrirEn, abrirFicha, abrirFichaFalla, abrirColeccion, get FALLAS() { return FALLAS; }, unidadEn: (lat, lon) => unidadEn(lon, lat), hLocal, get camera() { return camera; } };
