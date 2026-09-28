@@ -1,0 +1,542 @@
+{
+ "Qan": {
+  "edad": "Holoceno",
+  "desc": "Depósitos de origen antrópico: tranques de relave y depósitos de material estéril de la gran minería de cobre; rellenos sanitarios."
+ },
+ "Q1": {
+  "edad": "Pleistoceno-Holoceno",
+  "desc": "Depósitos aluviales, coluviales y de remoción en masa; en menor proporción fluvioglaciales, deltaicos, litorales o indiferenciados. En la Depresión Central, regiones Metropolitana a IX: abanicos mixtos de depósitos aluviales y fluvioglaciales con intercalación de depósitos volcanoclásticos."
+ },
+ "Qf": {
+  "edad": "Pleistoceno-Holoceno",
+  "desc": "Depósitos fluviales: gravas, arenas y limos del curso actual de los ríos mayores o de sus terrazas subactuales y llanuras de inundación."
+ },
+ "Qm": {
+  "edad": "Pleistoceno-Holoceno",
+  "desc": "Depósitos litorales: arenas y gravas de playas actuales."
+ },
+ "Qa": {
+  "edad": "Pleistoceno-Holoceno",
+  "desc": "Depósitos aluviales, subordinadamente coluviales o lacustres: gravas, arenas y limos. En la Depresión Central, regiones I a III: abanicos aluviales."
+ },
+ "Q1g": {
+  "edad": "Pleistoceno-Holoceno",
+  "desc": "Depósitos morrénicos, fluvioglaciales y glacilacustres: diamictos de bloques y matriz de limo/arcilla, gravas, arenas y limos. En la Cordillera Principal, regiones I a IV. En la Depresión Central, regiones IX y X; en regiones XI y XII: lóbulos morrénicos en el frente de los lagos proglaciales, abanicos fluvioglaciales frontales o varves en la ribera de lagos o cursos fluviales, asociados a las principales glaciaciones del Pleistoceno donde son indiferenciados o relativos a las glaciaciones Llanquihue (1; 35-14,2 ka); Santa María (2; 262-132 ka); Río Llico (3; 480-338 ka) o Caracol (4; 687-512 ka)."
+ },
+ "Qe": {
+  "edad": "Pleistoceno-Holoceno",
+  "desc": "Depósitos eólicos: arenas finas a medias con intercalaciones bioclásticas en dunas y barjanes tanto activos como inactivos. En las regiones I a VII: dunas de Santo Domingo y Quivolgo."
+ },
+ "Pl1m": {
+  "edad": "Pleistoceno",
+  "desc": "Secuencias sedimentarias marinas litorales o fluviales estuarinas: coquinas, conglomerados coquináceos, areniscas y conglomerados dispuestos en niveles aterrazados emergidos. En la costa, regiones II y III: Estratos de Mejillones y de Caldera; en la región X: Estratos de Niebla (Cancagua)."
+ },
+ "PPl1r": {
+  "edad": "Plioceno-Pleistoceno",
+  "desc": "Depósitos de remoción en masa: brechas polimícticas con matriz de arena/limo en proporción variable, de flujo o deslizamiento gravitacional. En la Cordillera Principal: flujos de detritos de las quebradas Lluta y Camarones (región I); avalancha de detritos de Colón-Coya (región VI)."
+ },
+ "PPl1c": {
+  "edad": "Plioceno-Pleistoceno",
+  "desc": "Conglomerados, areniscas, limolitas y arcillolitas, generalmente consolidados, de facies principalmente aluviales, subordinadamente lacustres y eólicas. En las regiones I a III forman abanicos aluviales inactivos mientras en Chile central (Estratos de Potrero Alto) son niveles aterrazados adosados al sustrato de la zona costera."
+ },
+ "PPl1l": {
+  "edad": "Plioceno-Pleistoceno",
+  "desc": "Secuencias sedimentarias lacustres: limos y arcillas con intercalaciones de niveles calcáreos, conglomerádicos o piroclásticos. En la Cordillera Principal, regiones I y II: formaciones Lauca, Chiuchiu y El Tambo."
+ },
+ "MQs": {
+  "edad": "Mioceno-Cuaternario",
+  "desc": "Depósitos evaporíticos: sulfatos, cloruros, carbonatos y niveles detríticos finos, localmente con bórax y/o litio. En los salares, regiones I a III: salares de Surire, Huasco, Coposa, Pintados, Bellavista, Grande, Atacama, Pedernales y Maricunga."
+ },
+ "MP1m": {
+  "edad": "Mioceno Superior-Plioceno",
+  "desc": "Secuencias sedimentarias marinas transgresivas: areniscas, limolitas, coquinas, conglomerados, calizas y fangolitas. En la costa, regiones II a VIII: formaciones La Portada, Bahía Inglesa, Coquimbo, Navidad y Tubul."
+ },
+ "MP1c": {
+  "edad": "Mioceno Superior-Plioceno",
+  "desc": "Secuencias sedimentarias clásticas de piedemonte, aluviales, coluviales o fluviales: conglomerados, areniscas y limolitas. En las regiones I a IV: formaciones Huaylas, Lauca y Pastos Chicos, Gravas del Copiapó; en la región XI: Formación Galeras."
+ },
+ "MP1l": {
+  "edad": "Mioceno Superior-Plioceno",
+  "desc": "Secuencias sedimentarias lacustres, en parte fluviales y aluviales: limos, arenas, conglomerados, calizas y cenizas volcánicas. En las regiones I y II: formaciones El Loa, Quillagua y Vilama."
+ },
+ "M1c": {
+  "edad": "Mioceno Inferior-Medio",
+  "desc": "Secuencias sedimentarias de abanicos aluviales, pedimento o fluviales: gravas, arenas y limos con ignimbritas intercaladas. En las regiones I a III: formaciones Diablo, Chucal, Altos de Pica (superior) y Gravas de Atacama; en las regiones VIII a IX: Formación Cura-Mallín (superior); en la región XI: Formación Las Dunas."
+ },
+ "M1m": {
+  "edad": "Mioceno",
+  "desc": "Secuencias sedimentarias marinas transgresivas plataformales: areniscas finas, arcillolitas y limolitas. En la costa, región VIII: Fm. Ranquil; en la Depresión Central, región IX: Formación Cholchol."
+ },
+ "OM1m": {
+  "edad": "Oligoceno-Mioceno",
+  "desc": "Secuencias sedimentarias marinas: areniscas y coquinas. En la región XI: formaciones Guadal y Ayacara."
+ },
+ "OM1c": {
+  "edad": "Oligoceno-Mioceno",
+  "desc": "Secuencias sedimentarias continentales parálicas o aluviales: conglomerados, areniscas, lutitas, calizas y mantos de carbón. En la Cordillera Principal y Precordillera, regiones I y II: formaciones Altos de Pica (inferior) y San Pedro; en la Cordillera de la Costa, región X: Estratos de Pupunahue y Parga, Formación Cheuquemó; en la región XII: Formación Loreto."
+ },
+ "EM1m": {
+  "edad": "Eoceno-Mioceno",
+  "desc": "Secuencias sedimentarias marinas sublitorales: limolitas y arcillolitas. En la región XII: Grupo Bahía Inútil."
+ },
+ "EO1c": {
+  "edad": "Eoceno-Oligoceno",
+  "desc": "Secuencias sedimentarias continentales aluviales y fluviales: conglomerados, areniscas y limolitas con intercalaciones menores de yeso, tobas y lavas. En las regiones I a II: formaciones Azapa, Sichal, y Calama."
+ },
+ "E1c": {
+  "edad": "Eoceno",
+  "desc": "Secuencias sedimentarias continentales parálicas: areniscas, lutitas y mantos de carbón. En la costa, región VIII: Formación Trihueco; en la región XI: Formación San José."
+ },
+ "E1m": {
+  "edad": "Eoceno",
+  "desc": "Secuencias sedimentarias marinas: areniscas y lutitas. En la región VIII: Formación Millongue; en región XII: parte inferior del Grupo Bahía Inútil."
+ },
+ "PE1c": {
+  "edad": "Paleoceno-Eoceno Inferior",
+  "desc": "Secuencias sedimentarias continentales aluviales, fluviales o lacustres: areniscas, conglomerados, lutitas, niveles evaporíticos y carbonosos. En la Cordillera Principal, región II: formaciones Chojfias y Siglia; en la Precordillera, región II: ‘Unidad Naranja’; en la región XI: Formación Ligorio Márquez."
+ },
+ "PE1": {
+  "edad": "Paleoceno-Eoceno",
+  "desc": "Secuencias sedimentarias marinas y transicionales: areniscas, limolitas calcáreas y mantos de carbón. En la costa, región VIII: formaciones Curanilahue y Boca Lebu."
+ },
+ "Pa1m": {
+  "edad": "Paleoceno",
+  "desc": "Secuencias sedimentarias marinas deltaicas y parálicas: areniscas y limolitas. En la región XII: Formación Chorrillo Chico."
+ },
+ "KT1c": {
+  "edad": "Cretácico Superior-Terciario Inferior",
+  "desc": "Secuencias sedimentarias continentales aluviales y fluviales: conglomerados, areniscas y limolitas rojizas. En la Precordillera de la región II: formaciones Tolar y Tambillo, estratos de Quepe y Barros Arana."
+ },
+ "Ks1m": {
+  "edad": "Cretácico Superior",
+  "desc": "Secuencias sedimentarias marinas de plataforma, litorales o transicionales: areniscas, conglomerados, lutitas, calizas extraclásticas y oolíticas, sucesiones turbidíticas. En la Cordillera Principal, región II: Formación Lomas Negras y Estratos de Quebrada Blanca de Poquis; en la costa, regiones VII y VIII: Formación Quiriquina; en la XII: formaciones Cerro Toro y Punta Barrosa."
+ },
+ "Ks1mp": {
+  "edad": "Campaniano-Maastrichtiano",
+  "desc": "Secuencias sedimentarias marinas y parálicas: areniscas y lutitas. En la región XII: formaciones Tres Pasos, Rocallosa, Fuentes, Cerro Cuchilla y Dorotea."
+ },
+ "Ks1c": {
+  "edad": "Cretácico Superior",
+  "desc": "Secuencias sedimentarias continentales aluviales y lacustres: conglomerados, brechas, areniscas y limolitas rojas con intercalación de tobas riolíticas y lavas andesíticas. En la Precordillera, regiones I a III: formaciones Guaviña, Cerro Empexa (inferior) y Purilactis (inferior); Estratos del Leoncito."
+ },
+ "Kia1c": {
+  "edad": "Cretácico Inferior alto (Aptiano-Cenomaniano)",
+  "desc": "Secuencias sedimentarias continentales aluviales, fluviales y lacustres: areniscas, conglomerados, limolitas, calcilutitas y brechas sedimentarias con intercalación de tobas. En la región IV: formaciones Pucalume y Viñita (inferior); en la Cordillera Principal, regiones V y Metropolitana: formaciones Colimapu y Cristo Redentor."
+ },
+ "Ki1m": {
+  "edad": "Cretácico Inferior (Neocomiano)",
+  "desc": "Secuencias sedimentarias marinas litorales: calizas, calcarenitas, areniscas, margas y coquinas. En las regiones I a IV: formaciones Blanco, El Way, Grupo Chañarcillo y Río Tascadero."
+ },
+ "JK1m": {
+  "edad": "Jurásico Superior-Cretácico Inferior",
+  "desc": "Secuencias sedimentarias marinas litorales o plataformales: calizas, lutitas, areniscas calcáreas, areniscas y coquinas. En la Precordillera, región III: Formación Pedernales; en la Cordillera Principal, regiones Metropolitana y VI: formaciones Lo Valdés, Baños del Flaco; en las regiones XI a XII: Grupo Coihaique y formaciones La Paciencia, Erezcano, Zapata, Sutherland, Río Jackson, Vicuña y Yaghán."
+ },
+ "JK1c": {
+  "edad": "Jurásico Superior-Cretácico Inferior",
+  "desc": "Secuencias sedimentarias continentales aluviales, fluviales y eólicas, en parte transicionales: areniscas, limolitas, lutitas y conglomerados rojos. En la Precordillera, regiones I a III: formaciones Chacarilla, Quinchamale y Quehuita (superior), Cerritos Bayos, Llanura Colorada y Quebrada Monardes; en la Cordillera de la Costa, regiones I a II: formaciones Atajaña y Caleta Coloso."
+ },
+ "JK1": {
+  "edad": "Jurásico Superior-Cretácico Inferior",
+  "desc": "Secuencias sedimentarias transicionales: areniscas, lutitas, calizas, conglomerados. En la Precordillera, regiones I a III: formaciones Santa Ana, Picudo, Los Cuartitos."
+ },
+ "J1m": {
+  "edad": "Jurásico-Neocomiano",
+  "desc": "Secuencias sedimentarias marinas carbonatadas y clásticas: calizas, lutitas, areniscas calcáreas, paraconglomerados, niveles de yeso e intercalaciones volcánicas subordinadas. En la Precordillera, regiones I a III: formaciones Livilcar, Sierra del Cobre, Quehuita (inferior), Quinchamale (inferior) y El Profeta (superior)."
+ },
+ "Js1c": {
+  "edad": "Jurásico Superior",
+  "desc": "Secuencias sedimentarias continentales y transicionales, en parte lacustres: brechas sedimentarias, conglomerados y areniscas rojas con intercalación de tobas y niveles evaporíticos. En la Cordillera Principal, regiones Metropolitana y VI: formaciones Río Damas y Leñas-Espinoza."
+ },
+ "Js1m": {
+  "edad": "Jurásico Medio-Superior",
+  "desc": "Secuencias sedimentarias marinas litorales: calizas, areniscas, lutitas calcáreas, en parte bituminosas, con intercalaciones epiclásticas y niveles evaporíticos superiores. En las regiones I y II: formaciones Los Tarros, Chiza, Guantajaya, Cholita, Pachica, Duplijsa y Grupo Caracoles; en las regiones V a VII: formaciones Cerro Calera, Río Colina y Nacientes del Teno."
+ },
+ "Ji1m": {
+  "edad": "Jurásico Inferior-Medio",
+  "desc": "Secuencias sedimentarias marinas litorales o de plataforma: calizas, areniscas calcáreas, lutitas, conglomerados y areniscas con intercalaciones volcanoclásticas y lávicas; basaltos almohadillados. En la Precordillera, regiones II a IV: formaciones Montandón y Asientos; en la Cordillera de la Costa: formaciones Pan de Azúcar y Posada Los Hidalgos, en la Cordillera Principal, regiones III a IV: formaciones Lautaro y Tres Cruces; en la Cordillera Principal, regiones VIII y IX: Formación Nacientes del Biobío (inferior)."
+ },
+ "TrJ1m": {
+  "edad": "Triásico-Jurásico Inferior",
+  "desc": "Secuencias sedimentarias marinas litorales y transicionales: areniscas cuarcíferas, ortoconglomerados, calizas fosilíferas, lutitas y limolitas calcáreas con intercalaciones volcánicas subordinadas. En la Precordillera y localmente en la costa, regiones II a III: Estratos de Rencoret y formaciones Quebrada del Salitre, El Profeta (inferior) y Canto del Agua."
+ },
+ "TrJ1c": {
+  "edad": "Triásico-Jurásico Inferior",
+  "desc": "Secuencias sedimentarias continentales aluviales, fluviales y lacustres: conglomerados, areniscas cuarcíferas y feldespáticas y lutitas carbonosas con intercalación de tobas riolíticas y lavas basálticas. En la Precordillera, región III: Formación La Ternera y Estratos El Mono."
+ },
+ "Tr1c": {
+  "edad": "Triásico Superior",
+  "desc": "Secuencias sedimentarias continentales aluviales, fluviales y lacustres, en parte transicionales: conglomerados, brechas, areniscas, lutitas e intercalaciones calcáreas. En la región II: Formación Sama; en las regiones VIII a X: Estratos de Santa Juana y Llufquentué-Huimpil; formaciones Tralcán y Panguipulli."
+ },
+ "Tr1m": {
+  "edad": "Triásico Superior",
+  "desc": "Secuencias sedimentarias marinas y transicionales: areniscas, conglomerados, limolitas y calizas. En la Precordillera y zona costera, regiones II a IV: formaciones Cerro Minado, San Félix y El Quereo."
+ },
+ "P1m": {
+  "edad": "Pérmico",
+  "desc": "Secuencias turbidíticas. En la península Antártica: Formación Polar Star."
+ },
+ "CP1": {
+  "edad": "Carbonífero Superior-Pérmico",
+  "desc": "Secuencias sedimentarias continentales y marinas: areniscas, conglomerados, lutitas, calizas y mármoles. En las regiones I a IV: formaciones Juan de Morales, Diablo, Cerro del Arbol, Huentelauquén; en la región XII: Calizas Tarlton, Complejo Duque de York; en la península Antártica: Grupo Whiteout. DTr1c Devónico-Triásico Secuencias sedimentarias continentales: areniscas. En la península Antártica: areniscas de las montañas Ellsworth y Pensacola."
+ },
+ "DC1": {
+  "edad": "Devónico-Carbonífero",
+  "desc": "Secuencias sedimentarias marinas, en parte transicionales: areniscas cuarzo-feldespáticas, lutitas micáceas, conglomerados. En la Precordillera, regiones II a III: formaciones Lila y Chinches; en la Cordillera Principal, regiones II y IV: formaciones Zorritas y Hurtado."
+ },
+ "OS1m": {
+  "edad": "Ordovícico-Silúrico",
+  "desc": "Secuencias sedimentarias marinas: cuarcitas, areniscas cuarzo-feldespáticas, limolitas y conglomerados. En la Cordillera Principal, regiones I y II: formaciones Quebrada Aroma, Aguada de la Perdiz, Poquis y Estratos de Quisquiro. CaO1m Cámbrico-Ordovícico Secuencias sedimentarias marinas: calizas y sucesiones turbidíticas. En la península Antártica: Formación Hanna Ridge y Grupo Neptuno. CaD1 Cámbrico Medio-Devónico Secuencias sedimentarias: areniscas cuarzosas y lutitas. En la península Antártica: Grupo Crashsite. Ca1 Cámbrico Secuencias sedimentarias: conglomerados, areniscas, lutitas y mármoles. En la península Antártica: formaciones Minaret y Liberty Hills. SECUENCIAS SEDIMENTARIAS SECUENCIAS VOLCANOSEDIMENTARIAS"
+ },
+ "MP2": {
+  "edad": "Mioceno Superior-Plioceno",
+  "desc": "Secuencias volcanosedimentarias: conglomerados, lavas andesíticas, domos y tobas. En la Cordillera Principal, región VIII: Formación Mitrauquén."
+ },
+ "M2c": {
+  "edad": "Mioceno Inferior-Medio",
+  "desc": "Secuencias volcanosedimentarias continentales: tobas, areniscas y tufitas. En la región XI: Formación Río Frías."
+ },
+ "OM2m": {
+  "edad": "Oligoceno-Mioceno",
+  "desc": "Secuencias volcanosedimentarias marinas: cherts, areniscas y lutitas con lavas y brechas basálticas intercaladas. En la región XI: Formación Traiguén."
+ },
+ "OM2c": {
+  "edad": "Oligoceno-Mioceno",
+  "desc": "Secuencias volcanosedimentarias: lavas basálticas a dacíticas, rocas epiclásticas y piroclásticas. En la Cordillera Principal, regiones I a IX: formaciones Lupica, Escabroso, Abanico, Coya-Machalí, CuraMallín (inferior)."
+ },
+ "EO2c": {
+  "edad": "Eoceno-Oligoceno",
+  "desc": "Secuencias volcanosedimentarias: brechas volcanoclásticas, tobas cineríticas y areniscas tufáceas, intercalaciones evaporíticas (yeso), limolitas y calizas lacustres. En la Cordillera Principal, región III: estratos Llano Gases Blancos y Río Nevado (Aldebarán)."
+ },
+ "E2c": {
+  "edad": "Eoceno",
+  "desc": "Secuencias volcanosedimentarias: brechas sedimentarias y volcánicas, areniscas e intercalaciones de tobas. En la Precordillera, regiones II a IV: Estratos de Loma Amarilla, formaciones Pircas y Astaburuaga, Gravas del Torín."
+ },
+ "KT2": {
+  "edad": "Cretácico Superior-Terciario Inferior",
+  "desc": "Secuencias volcanosedimentarias: areniscas, paraconglomerados, lavas andesíticas y dacíticas, intercalaciones de ignimbritas, limolitas y calizas. En la Precordillera, regiones II y III: Estratos Cerro Totola y Formación Venado."
+ },
+ "KE2": {
+  "edad": "Cretácico-Eoceno",
+  "desc": "Secuencia volcanosedimentaria: tufitas y rocas epiclásticas. En la región XI: secuencia de Puerto Good en isla Byron."
+ },
+ "Ks2c": {
+  "edad": "Cretácico Superior",
+  "desc": "Secuencias volcanosedimentarias continentales: rocas epiclásticas y piroclásticas riolíticas, lavas andesíticas y traquíticas. En la Precordillera, región I a III: formaciones Quebrada Mala, Llanta, Hornitos; en las regiones IV a Metropolitana: formaciones Quebrada Seca, Viñita (oriental), Los Elquinos y Lo Valle."
+ },
+ "Ks2m": {
+  "edad": "Cretácico Superior",
+  "desc": "Secuencias volcanoclásticas marinas: tufitas y rocas epiclásticas con fósiles marinos, brechas andesíticas marinas, hialoclastitas. En las regiones XI y XII: formaciones Traiguén (occidental) y La Pera."
+ },
+ "Kia2": {
+  "edad": "Cretácico Inferior alto-Cretácico Superior bajo",
+  "desc": "Secuencias sedimentarias y volcánicas: rocas epiclásticas, piroclásticas y lavas andesíticas y basálticas con intercalaciones lacustres, localmente marinas. En la Precordillera y Cordillera de la Costa, regiones III a Metropolitana: formaciones Cerrillos, Viñita (occidental) y Las Chilcas."
+ },
+ "Ki2c": {
+  "edad": "Cretácico Inferior-Cretácico Superior",
+  "desc": "Secuencias sedimentarias y volcánicas continentales, con escasas intercalaciones marinas: brechas sedimentarias y volcánicas, lavas andesíticas, ocoítas, conglomerados, areniscas, limolitas calcáreas lacustres con flora fósil; localmente calizas fosilíferas marinas en la base. En Cordillera de la Costa, regiones IV, V y Metropolitana: formaciones Quebrada Marquesa y Veta Negra."
+ },
+ "Ki2m": {
+  "edad": "Cretácico Inferior (Neocomiano)",
+  "desc": "Secuencias volcánicas y sedimentarias marinas: lavas andesíticas y basálticas, tobas y brechas volcánicas y sedimentarias, areniscas y calizas fosilíferas. En la Precordillera, región III: Estratos Cerro El Aguila; en la Cordillera Principal, región IV: Formación Los Pelambres; en la Cordillera de la Costa, regiones V y Metropolitana: Formación Lo Prado."
+ },
+ "J2m": {
+  "edad": "Jurásico",
+  "desc": "Secuencias volcánicas y sedimentarias marinas: lavas y brechas, andesíticas y basálticas, calizas y areniscas marinas fosilíferas. En la Cordillera de la Costa, región I: Formación Caleta Ligate; en la Depresión Central, regiones II a III: formaciones Sierra Candeleros y Sierra Fraga."
+ },
+ "Js2c": {
+  "edad": "Jurásico Medio-Superior",
+  "desc": "Secuencias sedimentarias y volcánicas continentales: rocas epiclásticas, piroclásticas, y lavas andesíticas a riolíticas. En la Cordillera Principal, regiones III a IV: formaciones Lagunillas, Algarrobal, Mostazal. En la Cordillera de la Costa, regiones V y Metropolitana: Formación Horqueta. TrK2 Triásico-Cretácico Turbitas, cherts y basaltos almohadillados. En Antártica, isla Alejandro: Formación Le May."
+ },
+ "Tr2c": {
+  "edad": "Triásico Medio-Superior",
+  "desc": "Secuencias sedimentarias y volcánicas continentales: rocas epiclásticas fosilíferas, calizas estromatolíticas, lavas, brechas y tobas andesíticas a riolíticas. En la región I: Formación Pintados, Estratos de Conacona; en la Precordillera, región II: Estratos El Bordo; en la Cordillera de la Costa, regiones II a III: formaciones Agua Chica y Cifuncho; en la Precordillera y costa, región IV: formaciones Las Breas y La Ligua."
+ },
+ "CP2m": {
+  "edad": "Carbonífero-Pérmico",
+  "desc": "Secuencias volcanosedimentarias: basaltos almohadillados, cherts y calizas marinas. En la región XII: complejos Duque de York y Denaro."
+ },
+ "CP2": {
+  "edad": "Carbonífero-Pérmico",
+  "desc": "Secuencias sedimentarias y volcánicas continentales: rocas epiclásticas con intercalaciones de lavas andesíticas y tobas riolíticas. En Precordillera, región II: formaciones Tuina y Peine; en la Cordillera Principal, región IV: Formación Matahuaico. 1 2 3 4 NOTA: La Leyenda que acompaña al Mapa Geológico de Chile, escala 1:1.000.000, está organizada en cinco columnas que representan, de izquierda a derecha, secuencias sedimentarias (1), volcanosedimentarias (2), volcánicas (3), rocas intrusivas (g) y rocas metamórficas (4), respectivamente. Los prefijos corresponden a abreviaturas que describen el intervalo de edad para cada unidad. En las columnas 1 y 2, algunas unidades poseen como sufijo las letras c, m, l, que identifican ambiente continental, marino o lacustre. En la columna 3, los sufijos indican secuencias o volcanes de composición intermedia (i: basaltos a dacitas), ácida (a: dac"
+ },
+ "OM4": {
+  "edad": "Oligoceno-Mioceno",
+  "desc": "Metasedimentos y metabasitas, derivados de la Formación Traiguén (Oligoceno). En la costa, región XI. JT4a Jurásico-Terciario Esquistos micáceos, cuarcitas y mármoles con metamorfismo cretácico de bajo gradiente P/T. En la Península Antártica, isla Elefante: Complejo Metamórfico de Scotia. JT4b Jurásico-Terciario Esquistos glaucofánicos, micáceos y metabasitas con metamorfismo de alto gradiente P/T. En la Península Antártica, isla Elefante: Complejo Metamórfico Scotia."
+ },
+ "Js4": {
+  "edad": "Jurásico Superior",
+  "desc": "Esquistos con metamorfismo de alto gradiente P/T. En la región XII: complejo metamórfico acrecionario de las islas Diego de Almagro y Diego Ramírez."
+ },
+ "Jsg4": {
+  "edad": "Jurásico Superior",
+  "desc": "Ortoneises de protolito intrusivo. En la región XII: neises de Cordillera Darwin."
+ },
+ "Tr4a": {
+  "edad": "Triásico",
+  "desc": "Secuencias metaturbidíticas de protolito Triásico, afectadas por metamorfismo de bajo grado del Jurásico-Cretácico. En la Cordillera de la Costa, región XI: Formación Potranca."
+ },
+ "Tr4b": {
+  "edad": "Triásico",
+  "desc": "Esquistos micáceos y filitas de protolito metasedimentario (Tr4a). En la Cordillera de la Costa, región XI: Formación Canal King. PK4 Pérmico-Cretácico Neises, metabasitas y granitoides con protolitos de edades desde Pérmico a Triásico y metamorfismo del Jurásico a Cretácico. En la península Antártica. PTr4 Pérmico-Triásico Metaturbiditas con metamorfismo de bajo grado. En la península Antártica: Grupo Península Trinidad."
+ },
+ "PzTr4": {
+  "edad": "Paleozoico-Triásico",
+  "desc": "Metapelitas, metacherts, metabasitas y, en menor proporción, neises y rocas ultramáficas con protolitos de edades desde el Devónico al Triásico y metamorfismo del Pérmico al Jurásico. En la Cordillera de la Costa, regiones IX a X: Complejo Metamórfico Bahía Mansa; en la Cordillera Principal, región X: Complejo Metamórfico Liquiñe. Se distinguen esquistos pelíticos (a) y esquistos y anfibolitas, en menor proporción, rocas metamórficas ultramáficas (b)."
+ },
+ "DC4": {
+  "edad": "Devónico-Carbonífero",
+  "desc": "Metaareniscas, filitas y, en menor proporción, mármoles, cherts, metabasaltos y metaconglomerados; metaturbiditas con facies de ‘mélange’. En la Cordillera de la Costa, regiones I a III: Formación El Toco, Complejo Epimetamórfico Chañaral; en la Cordillera Patagónica, regiones XI y XII: Complejo Metamórfico Oriental de Aisén y Magallanes."
+ },
+ "Pz4a": {
+  "edad": "Silúrico?-Carbonífero",
+  "desc": "Esquistos muscovíticos y metabasitas, metachert y serpentinitas con metamorfismo de alto gradiente P/T (Serie Occidental) y metamorfismo del Carbonífero temprano. En la Cordillera de la Costa, regiones VI a IX."
+ },
+ "Pz4b": {
+  "edad": "Silúrico?-Carbonífero",
+  "desc": "Pizarras, filitas y metaareniscas con metamorfismo de bajo gradiente P/T (Serie Oriental) del Carbonífero temprano. En la Cordillera de la Costa, regiones VI a IX."
+ },
+ "pCP4": {
+  "edad": "Precámbrico-Pérmico",
+  "desc": "Esquistos micáceos, metabasitas, anfibolitas, ortoneises y, en menor proporción, cuarcitas y mármoles con protolitos de probable edad desde Precámbrico a Paleozoico temprano y metamorfismo del Carbonífero al Pérmico. En la Precordillera, regiones II y III: complejos metamórficos Limón Verde y El Tránsito, Neises de la Pampa."
+ },
+ "pCO4": {
+  "edad": "Precámbrico-Ordovícico",
+  "desc": "Esquistos micáceos, neises, migmatitas y, en menor proporción, anfibolitas, ortoneises, cuarcitas y filitas con protolitos de edades desde el Precámbrico a Paleozoico temprano y de metamorfismo del Cámbrico-Ordovícico. En la Precordillera y Cordillera de la Costa, regiones I y II: Esquistos de Belén, Formación Choja, metamorfitas de sierra Moreno y Mejillones. ROCAS METAMORFICASROCAS INTRUSIVASSECUENCIAS VOLCANICAS"
+ },
+ "Pg": {
+  "edad": "Plioceno (4-3 Ma)",
+  "desc": "Granodioritas, tonalitas y monzogranitos. En la costa, región XI: granitoides de península Tres Montes y Taitao; en la Cordillera Patagónica, región XI: intrusivo del río de las Nieves."
+ },
+ "Msh": {
+  "edad": "Mioceno Superior (8-5 Ma)",
+  "desc": "Pórfidos andesíticos, dacíticos y granodioríticos de hornblenda, portadores de mineralización de tipo ‘Pórfido cuprífero gigante’ y chimeneas de brechas. En la Cordillera Principal, región VI: El Teniente."
+ },
+ "Msg": {
+  "edad": "Mioceno Superior (13-7 Ma)",
+  "desc": "Granodioritas de hornblenda y biotita, en menor proporción monzogranitos, monzonitas cuarcíferas y monzodioritas. En la Cordillera Principal, regiones Metropolitana y VI: plutones La Gloria y San Gabriel."
+ },
+ "Mh": {
+  "edad": "Mioceno (20-12 Ma)",
+  "desc": "Pórfidos dacíticos, andesíticos, monzodioritas y dioritas de hornblenda, piroxeno y biotita. En la Cordillera Principal, regiones I a III: pórfidos de Poquis, Chapiquiña y ‘Pórfidos auríferos’ de la ‘Franja de Maricunga’. En la Depresión Central y Cordillera Principal, región Metropolitana: cerro Manquehue."
+ },
+ "Mg": {
+  "edad": "Mioceno (18-6 Ma)",
+  "desc": "Granodioritas, dioritas y tonalitas. En la Cordillera Principal, regiones VII a X; en la Cordillera Patagónica, regiones XI y XII: franja central del Batolito Norpatagónico y plutones orientales: plutones Liquiñe, San Lorenzo, Paso Las Llaves y Torres del Paine."
+ },
+ "Mimg": {
+  "edad": "Mioceno Inferior-Medio (22-16 Ma)",
+  "desc": "Granodioritas, monzogranitos, monzodioritas, monzonitas y dioritas de biotita y hornblenda. En Cordillera Principal, regiones V y Metropolitana: Plutón La Obra."
+ },
+ "Og": {
+  "edad": "Oligoceno ( 33-24 Ma)",
+  "desc": "Granodioritas, monzogranitos, tonalitas, dioritas de hornblenda y biotita; gabros. En la Precordillera, región I: Batolito Yabricoya; en la Cordillera Principal, región IV: Plutón Río Las Cuevas; en la región XI: Gabro Bandurrias."
+ },
+ "EOp": {
+  "edad": "Eoceno-Oligoceno (42-31 Ma)",
+  "desc": "Pórfidos granodioríticos, monzoníticos, dioríticos, dacíticos y riolíticos de biotita y hornblenda, portadores de mineralización de tipo ‘Pórfido cuprífero gigante’. En la Precordillera, regiones I a III: Collahuasi, El Abra, Chuquicamata, La Escondida, El Salvador."
+ },
+ "Eg": {
+  "edad": "Eoceno (52-33 Ma)",
+  "desc": "Granodioritas, tonalitas y dioritas cuarcíferas de hornblenda y biotita, dioritas y monzodioritas de piroxeno y biotita; pórfidos dacíticos y riolíticos. En la Precordillera y Cordillera Principal, regiones I a V; en la Cordillera Patagónica, región XI: archipiélago de los Chonos."
+ },
+ "PEg": {
+  "edad": "Paleoceno-Eoceno (63-38 Ma)",
+  "desc": "Monzodioritas de piroxeno y biotita, granodioritas y monzogranitos de hornblenda y biotita, dioritas, gabros y pórfidos riolíticos y dacíticos, asociados a mineralización de Cu-Au. En la Precordillera, regiones II y III: San Cristóbal, Inca de Oro; en la Cordillera Principal, región IV; en la Cordillera Patagónica, región XII: islas Hoste y Londonderry."
+ },
+ "Pag": {
+  "edad": "Paleoceno (65-53 Ma)",
+  "desc": "Monzodioritas de piroxeno y biotita, granodioritas y granitos de hornblenda y biotita; pórfidos dacíticos y riolíticos, asociados a mineralización tipo pórfido cuprífero y chimeneas de brechas. En la Precordillera, regiones I a III: Cerro Colorado, Sierra Gorda, Cabeza de Vaca."
+ },
+ "KTg": {
+  "edad": "Cretácico Superior-Terciario Inferior",
+  "desc": "Granodioritas, dioritas y pórfidos graníticos. Entre las cordilleras de la Costa y Principal, regiones I a IV; en la Cordillera Patagónica, regiones XI y XII: granitoides y pórfidos de Puerto Ibañez e islas Evans. (a) Facies marginales de granodioritas y gabros del Batolito Surpatagónico: isla Riesco y estrecho de Magallanes."
+ },
+ "Ksg": {
+  "edad": "Cretácico Superior (90-65 Ma)",
+  "desc": "Monzodioritas, granodioritas, gabros y dioritas de piroxeno, biotita y hornblenda; pórfidos andesíticos y dioríticos. En la Precordillera, regiones I a III y entre las cordilleras de la Costa y Principal, regiones IV, V y Metropolitana; en la región XII: granitoides de las islas Wollaston y Navarino, Cordillera Darwin."
+ },
+ "Ksh": {
+  "edad": "Cretácico Superior (84-66 Ma)",
+  "desc": "Pórfidos andesíticos-dioríticos, dacíticos y riolíticos. Entre las cordilleras de la Costa y Principal, regiones III y IV, asociados a secuencias volcánicas de edad similar."
+ },
+ "Kiag": {
+  "edad": "Cretácico Inferior alto-Cretácico Superior bajo",
+  "desc": "(123-85 Ma) Dioritas y monzodioritas de piroxeno y hornblenda, granodioritas, monzogranitos de hornblenda y biotita. En la Cordillera de la Costa, regiones II a IV, al este del Sistema de Fallas Atacama-El Romeral y asociados a mineralización de Fe-Cu-Au (Candelaria) y Cu-Au (Andacollo); en la Cordillera de la Costa, regiones V a X."
+ },
+ "Kibg": {
+  "edad": "Cretácico Inferior bajo (144-124 Ma)",
+  "desc": "Monzodioritas y dioritas de piroxeno, hornblenda y biotita, granodioritas y tonalitas. En la Cordillera de la Costa, regiones II a IV, asociados al Sistema de Fallas Atacama-El Romeral y mineralización de Fe (Cerro Imán, Algarrobo)."
+ },
+ "Kig": {
+  "edad": "Cretácico Inferior (144-90 Ma)",
+  "desc": "Granitos, granodioritas y tonalitas de hornblenda y biotita. En la Cordillera Principal, regiones VIII a XI: Grupo Plutónico Gualletué, archipiélago de los Chonos y borde oriental del Batolito Norpatagónico; en la península Antártica."
+ },
+ "JKg": {
+  "edad": "Jurásico-Cretácico (150-100 Ma)",
+  "desc": "Granodioritas, dioritas, monzodioritas y granitos; pórfidos dacíticos y andesíticos. En la Cordillera de la Costa, regiones I y II: batolitos Punta Negra y Huara-Pozo Almonte."
+ },
+ "Jsg": {
+  "edad": "Jurásico Medio-Superior (180-142 Ma)",
+  "desc": "Monzodioritas cuarcíferas, dioritas y granodioritas de biotita, piroxeno y hornblenda. En la Cordillera de la Costa, regiones I a VI; en la Cordillera Principal, regiiones X y XI: Plutón Panguipulli y borde oriental del Batolito Norpatagónico; en la península Antártica."
+ },
+ "Jig": {
+  "edad": "Jurásico Inferior (202-178 Ma)",
+  "desc": "Dioritas, gabros y monzodioritas de piroxeno, dioritas cuarcíferas y granodioritas y tonalitas de hornblenda y biotita. En la Cordillera de la Costa, regiones II a III: plutones Flamenco y Caldera-Pajonales."
+ },
+ "TrJg": {
+  "edad": "Triásico-Jurásico (212-180 Ma)",
+  "desc": "Granodioritas, monzogranitos, monzodioritas, dioritas y gabros de piroxeno y hornblenda; sienogranitos. En Cordillera de la Costa, regiones III a V."
+ },
+ "Trg": {
+  "edad": "Triásico (240-205 Ma)",
+  "desc": "Granitos leucocráticos, monzo y sienogranitos de biotita y muscovita, granodioritas y dioritas de biotita y hornblenda, pórfidos hipabisales. En la Cordillera de la Costa y Precordillera, regiones II y III: cerros de Paqui, granodioritas Este y Elena, Plutón Cerros del Vetado; en la Cordillera Principal, región IV."
+ },
+ "PTrg": {
+  "edad": "Pérmico-Triásico (270-205 Ma)",
+  "desc": "Granitos hololeucocráticos, pórfidos graníticos y granodioritas de biotita. En la Cordillera Principal, regiones III y IV: Batolito Elqui-Limarí (Unidad Ingaguás); en Antártica."
+ },
+ "CPg": {
+  "edad": "Carbonífero-Pérmico (328-235 Ma)",
+  "desc": "Granitos, granodioritas, tonalitas y dioritas, de hornblenda y biotita, localmente de muscovita. En la Precordillera y Cordillera Principal, regiones I a IV: Batolitos compuestos, ‘stocks’ y cuerpos hipabisales (Sierra Moreno, Cordillera de Domeyko, Batolito Elqui-Limarí); en la Cordillera Principal, regiones X y XI: Batolito Panguipulli-Riñihue y ‘Stock’ Leones."
+ },
+ "OSg": {
+  "edad": "Ordovícico-Silúrico (466-415 Ma)",
+  "desc": "Granitos leucocráticos y monzogranitos de muscovita y biotita, granodioritas, migmatitas y ortoneises. En la Precordillera, regiones I y II: plutones de Tucúcaro y Pingo-Pingo; en la península Antártica: granitoides de monte Eissinger y Target Hill. (a) (b) (a)"
+ },
+ "Q3i": {
+  "edad": "Cuaternario",
+  "desc": "Estratovolcanes y complejos volcánicos: lavas basáticas a riolíticas, domos y depósitos piroclásticos andesítico-basálticos a dacíticos; principalmente calcoalcalinos; adakíticos al sur de los 47ºS. En la Cordillera Principal, regiones I a III: volcanes Taapaca, Parinacota, Láscar y Ojos del Salado. Principalmente holocenos en la Cordillera Principal, regiones Metropolitana a X: volcanes San José, Peteroa, Antuco, Llaima, Villarrica, Osorno y Calbuco, entre otros; en la Cordillera Patagónica, regiones XI a XII: volcanes Hudson, Lautaro y Monte Burney. En Antártica: isla Decepción."
+ },
+ "Q3t": {
+  "edad": "Cuaternario",
+  "desc": "Depósitos de flujo piroclástico, localmente soldados. En la Cordillera Principal, regiones I a III: ignimbritas Tuyajto, Cajón, Chato Aislado."
+ },
+ "Q3av": {
+  "edad": "Cuaternario",
+  "desc": "Depósitos de avalancha volcánica, asociados a colapso parcial de edificios volcánicos. En la Cordillera Principal, regiones I a VI: avalanchas de Parinacota, Ollagüe, Socompa, Colón-Coya y Teno."
+ },
+ "Pl3": {
+  "edad": "Pleistoceno",
+  "desc": "Secuencias lávicas y centros volcánicos básicos e intermedios; depósitos piroclásticos andesíticobasálticos. En la Cordillera Principal, regiones Metropolitana a X."
+ },
+ "Pl3t": {
+  "edad": "Pleistoceno",
+  "desc": "Depósitos piroclásticos principalmente riolíticos, asociados a calderas de colapso. En la Depresión Central y valles de la Cordillera Principal, regiones V a VII: Ignimbrita Pudahuel y Toba Loma Seca."
+ },
+ "PPl3": {
+  "edad": "Plioceno-Pleistoceno",
+  "desc": "Secuencias y centros volcánicos parcialmente erodados: lavas principalmente basálticas con intercalaciones de tobas y conglomerados. En la Cordillera Principal, regiones VII a X: formaciones Cola de Zorro y Malleco; en la Cordillera Patagónica, región XII: basaltos de Pali Aike; en las islas oceánicas: volcán Poike (Isla de Pascua), archipiélago Juan Fernández, isla Salas y Gómez; islas San Félix y San Ambrosio."
+ },
+ "P3t": {
+  "edad": "Plioceno",
+  "desc": "Depósitos piroclásticos dacíticos a riolíticos parcialmente soldados. Principalmente en la Cordillera Principal, regiones I a III: ignimbritas Lauca, Puripicar, Atana, Tucúcaro, Patao y Laguna Verde."
+ },
+ "P3i": {
+  "edad": "Plioceno",
+  "desc": "Centros volcánicos: lavas, domos y depósitos piroclásticos andesíticos a dacíticos, conos de piroclastos y lavas basálticas a andesítico-basálticas. En la Cordillera Principal, regiones I a III: volcanes Larancagua, Miño, Peñas Blancas y Laguna Escondida; en la región XI: centros volcánicos de la península de Taitao."
+ },
+ "MP3": {
+  "edad": "Mioceno-Plioceno",
+  "desc": "Basaltos de ‘plateau’ y rocas piroclásticas intermedias a ácidas. En la Cordillera Principal, región VII y Cordillera Patagónica, regiones XI y XII: basaltos de Chile Chico, adakitas de península de Taitao y Formación Palomares."
+ },
+ "Ms3t": {
+  "edad": "Mioceno Superior",
+  "desc": "Ignimbritas dacíticas a riolíticas y depósitos piroclásticos asociados a estratovolcanes. En la Cordillera Principal, regiones I a IV: ignimbritas Ujina, Sifón, San Andrés, Grande y Formación Vallecito."
+ },
+ "Ms3i": {
+  "edad": "Mioceno Superior",
+  "desc": "Centros y secuencias volcánicas: lavas, domos y depósitos piroclásticos, andesíticos a dacíticos, con intercalaciones aluviales, asociados a depósitos epitermales de Au-Ag. En la Cordillera Principal, regiones I a IV: volcanes Choquelimpie, Copiapó, Wheelwright y Formación Vacas Heladas."
+ },
+ "M3o": {
+  "edad": "Mioceno",
+  "desc": "Serpentinitas, gabros, diques y lavas almohadilladas diabásicas, con intercalaciones de limolitas y areniscas finas. En la región XI: ofiolitas de la península de Taitao."
+ },
+ "M3av": {
+  "edad": "Mioceno Inferior-Medio",
+  "desc": "Depósitos de avalancha volcánica asociados a colapso parcial de estratovolcanes; depósitos de remoción en masa gravitacionales. En la Cordillera Principal, regiones I y III."
+ },
+ "M3b": {
+  "edad": "Mioceno",
+  "desc": "Lavas basálticas y andesítico basálticas continentales. En la Cordillera de la Costa, región V: Lavas Las Pataguas; en la Cordillera Patagónica, región XII: Complejo Volcánico Packsaddle."
+ },
+ "M3t": {
+  "edad": "Mioceno Inferior-Medio",
+  "desc": "Secuencias piroclásticas dacíticas a riolíticas asociadas a calderas de colapso. En la Cordillera Principal, regiones I a III: ignimbritas Huasco, Maricunga y Vega Helada."
+ },
+ "M3i": {
+  "edad": "Mioceno Inferior-Medio",
+  "desc": "Complejos volcánicos parcialmente erosionados y secuencias volcánicas: lavas, brechas, domos y rocas piroclásticas andesítico-basálticas a dacíticas. En la Cordillera Principal, regiones I a VIII: complejos volcánicos Doña Inés y Ojos de Maricunga; formaciones Cerro Las Tórtolas y Farellones."
+ },
+ "OM3t": {
+  "edad": "Oligoceno-Mioceno",
+  "desc": "Secuencias piroclásticas dacíticas a riolíticas asociadas a calderas de colapso. En la Cordillera Principal, regiones I a III: Formación Oxaya, ignimbritas Río Frío y Los Terneros."
+ },
+ "OM3": {
+  "edad": "Oligoceno-Mioceno",
+  "desc": "Secuencias y centros volcánicos intermedios a ácidos: lavas, brechas, domos y rocas piroclásticas andesíticos a riolíticos. En la Precordillera y Cordillera Principal, regiones III y IV: complejos volcánicos de la ‘Franja de Maricunga’, Complejo Volcánico Cerros Bravos y Formación Tilito."
+ },
+ "OM3b": {
+  "edad": "Oligoceno-Mioceno",
+  "desc": "Secuencias y centros volcánicos básicos: lavas, brechas y rocas piroclásticas. En la Cordillera Principal, región III: Basaltos de Segerstrom; en la Depresión Central, región Metropolitana: cerro Huechún; en la Cordillera de la Costa, regiones IX y X: complejos volcánicos de Ancud, Pargua y Capitanes."
+ },
+ "E3b": {
+  "edad": "Eoceno",
+  "desc": "Basaltos de ‘plateau’ continentales, basaltos de intraplaca, y domos riolíticos subordinados. En la Cordillera Patagónica, regiones XI y XII: Basaltos Balmaceda y lavas del cabo Holland."
+ },
+ "E3": {
+  "edad": "Eoceno",
+  "desc": "Secuencias y centros volcánicos continentales: lavas y brechas basálticas a andesíticas con intercalaciones de rocas piroclásticas y domos riolíticos. En la Precordillera, regiones I y II: Formación Icanche y Estratos del Cerro Casado; en la Cordillera Patagónica, región XI: domos de Lago Chacabuco y alto Río Cisnes."
+ },
+ "PE3a": {
+  "edad": "Paleoceno-Eoceno Inferior",
+  "desc": "Secuencias y complejos volcánicos continentales ácidos: domos y rocas piroclásticas dacíticas a riolíticas asociados a calderas de colapso. En la Precordillera, región III: calderas El Salvador, San Pedro de Cachiyuyo y Lomas Bayas."
+ },
+ "PE3i": {
+  "edad": "Paleoceno-Eoceno Inferior",
+  "desc": "Secuencias y complejos volcánicos continentales: lavas y domos, andesítico-basálticos a dacíticos, con intercalaciones de rocas piroclásticas y epiclásticas. En la Precordillera, regiones II y III: formaciones Cinchado, Augusta Victoria y Chile-Alemania."
+ },
+ "Ks3a": {
+  "edad": "Cretácico Superior",
+  "desc": "Secuencias y complejos volcánicos ácidos: ignimbritas, domos e intrusivos dacíticos a riolíticos, asociados a calderas de colapso. Entre las cordilleras Principal y de la Costa, regiones II a IV: ignimbritas de Cerro Los Trigos-Cerro Dominador, calderas de Condoriaco, Las Pircas y Cerro Tololo."
+ },
+ "Ks3i": {
+  "edad": "Cretácico Superior",
+  "desc": "Secuencias volcánicas continentales: lavas, domos y brechas basálticos a dacíticos con intercalaciones piroclásticas y epiclásticas. En la Precordillera, regiones I a IV: Formación Cerro Empexa (superior), Estratos del Estanque, Cerro Los Carneros; en la Cordillera Patagónica, región XI: Grupo Ñireguao."
+ },
+ "Kia3": {
+  "edad": "Cretácico Inferior alto",
+  "desc": "Secuencias y complejos volcánicos continentales: lavas y brechas basáticas a andesíticas, rocas piroclásticas andesíticas a riolíticas, escasas intercalaciones sedimentarias. En las regiones I y II: formaciones Suca, Punta Barranco y Estratos de Quebrada San Cristóbal; en la Cordillera Patagónica, región XI: Grupo Divisadero. JT3 Jurásico-Terciario Basaltos, andesitas y riolitas con intercalaciones piroclásticas y sedimentarias. En Antártica: Grupo Volcánico Península Antártica."
+ },
+ "JK3o": {
+  "edad": "Jurásico-Cretácico",
+  "desc": "Gabros, diabasas y basaltos almohadillados. En la Cordillera Patagónica: complejos ofiolíticos Sarmiento y Tortuga."
+ },
+ "JK3": {
+  "edad": "Jurásico Superior-Cretácico Inferior",
+  "desc": "Secuencias volcánicas: lavas basálticas a riolíticas, domos, brechas y aglomerados andesíticos a dacíticos con intercalaciones clásticas continentales y marinas. En la Precordillera, regiones I, III y IV: formaciones Punta del Cobre y Arqueros; en la Cordillera Patagónica, región XII: Formación Hardy."
+ },
+ "J3a": {
+  "edad": "Jurásico",
+  "desc": "Secuencias y centros volcánicos: rocas piroclásticas dacíticas a riolíticas, lavas andesíticas e intercalaciones sedimentarias. En la Cordillera Patagónica y Antártica, regiones XI y XII: Grupo Ibáñez y Formación Tobífera."
+ },
+ "J3i": {
+  "edad": "Jurásico",
+  "desc": "Secuencias volcánicas continentales y marinas: lavas y aglomerados basálticos a andesíticos, tobas riolíticas, con intercalaciones de areniscas, calizas marinas y conglomerados continentales. En la Cordillera de la Costa, regiones I a III: formaciones Camaraca y La Negra; en la Cordillera Principal, región VIII: Formación Nacientes del Biobío (Miembro Icalma)."
+ },
+ "TrJ3": {
+  "edad": "Triásico-Jurásico Inferior",
+  "desc": "Secuencias volcánicas continentales y transicionales: lavas, domos, brechas, basálticos a riolíticos con intercalaciones de areniscas y conglomerados. En la Precordillera, regiones II y III: Estratos Las Lomas y Formación La Ternera; en la Cordillera Principal, región IV: Estratos de los Tilos; en la Cordillera de la Costa, región IV: Formación Pichidangui."
+ },
+ "PTr3": {
+  "edad": "Pérmico-Triásico",
+  "desc": "Secuencias volcánicas continentales y complejos subvolcánicos: tobas, brechas, lavas y domos riolíticos y dacíticos con intercalaciones de areniscas y conglomerados. Incluye pórfidos riolíticos. En la Cordillera Principal, regiones III y IV: Formación Pantanoso y Estratos de Guanaco Sonso."
+ },
+ "CP3": {
+  "edad": "Carbonífero-Pérmico",
+  "desc": "Secuencias volcánicas continentales: lavas, domos, tobas y brechas andesíticas a riolíticas con intercalaciones de areniscas, conglomerados y calizas. Incluye cuerpos hipabisales riolíticos. En la Precordillera y Cordillera Principal, regiones I a IV: formaciones Quipisca, Collahuasi, Cas y La Tabla."
+ },
+ "OS3": {
+  "edad": "Ordovícico-Silúrico",
+  "desc": "Secuencias volcánicas continentales y marinas: lavas basálticas y andesíticas con intercalaciones de lutitas, areniscas y tobas. En la Precordillera, región II: Complejo Igneo y Sedimentario del Cordón de Lila. LEYENDA Tomado de Sernageomin, (2000)Contacto geológico observado, inferido, cubierto Falla observada, inferida, cubierta Falla inversa Falla normal Falla de rumbo, flechas indican sentido de desplazamiento Falla fotointerpretada Milonitas Nitratos Traza de plano axial de anticlinal Traza de plano axial de sinclinal Traza de plano axial de anticlinal volcado Traza de plano axial de sinclinal volcado Traza de flexura con indicación de manteo del limbo Centro volcánico Caldera"
+ }
+}

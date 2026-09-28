@@ -1,0 +1,16 @@
+{
+  "name": "GeoLente — ¿de qué está hecho ese cerro?",
+  "short_name": "GeoLente",
+  "description": "Mapa geológico en realidad aumentada sobre los cerros de Chile.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0e1520",
+  "theme_color": "#0e1520",
+  "lang": "es",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
