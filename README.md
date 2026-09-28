@@ -14,7 +14,8 @@ divulgativas (edad, qué es, cómo reconocerla, dato curioso, contexto del mundo
   cerca del observador). Pasada previa de profundidad para que solo se coloree la superficie más cercana.
 - **Etiquetas**: grilla de candidatos + punto interior de cada polígono; se muestran las unidades con más
   superficie visible (con prueba de visibilidad contra el relieve) y hasta 3 fallas (una por nombre).
-- **Perfil de los cerros** (estilo PeakVisor): por cada azimut (0,1°) se marcha por el relieve buscando las crestas
+- **Perfil de los cerros** (estilo PeakVisor): por cada azimut (0,1°) se marcha por el relieve **hasta 70 km, un paso por
+  píxel** (SRTM 1" vía Terrarium z12 ≈ 30 m dentro del alcance; z10 ≈ 130 m hasta 70 km) buscando las crestas
   que tapan lo de atrás (≥25 m bajo la visual), se unen entre azimuts vecinos y se descartan cadenas cortas. Se
   ignoran los primeros 200 m (el DEM cercano taparía todo). Sirve para calzar con 🎯 Ajustar.
 - **Cumbres**: OpenStreetMap (ODbL, `tools/cumbres_osm.py`) + GeoNames (CC BY 4.0) donde OSM no tiene + volcanes a mano,

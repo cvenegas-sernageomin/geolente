@@ -72,14 +72,15 @@ const DEM = { z: 12, x0: 0, y0: 0, nx: 0, ny: 0, data: null, fallidas: 0 };
 const lon2tx = (lon, z) => (lon + 180) / 360 * 2 ** z;
 const lat2ty = (lat, z) => { const r = lat * Math.PI / 180; return (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * 2 ** z; };
 
-async function cargarDEM(A, progreso) {
-  const z = A > 30000 ? 11 : 12; // z12 ≈ 30 m: la forma de los cerros tiene que calzar
-  const [lonW, latS] = aLL(-A * 1.05, -A * 1.05), [lonE, latN] = aLL(A * 1.05, A * 1.05);
+const LEJOS = 70000; // el horizonte real (la alta cordillera) suele estar a 40–70 km
+let DEM2 = null;       // mosaico lejano, solo para perfil, cumbres y visibilidad
+async function mosaico(z, R, progreso) {
+  const [lonW, latS] = aLL(-R, -R), [lonE, latN] = aLL(R, R);
   const x0 = Math.floor(lon2tx(lonW, z)), x1 = Math.floor(lon2tx(lonE, z));
   const y0 = Math.floor(lat2ty(latN, z)), y1 = Math.floor(lat2ty(latS, z));
   const nx = x1 - x0 + 1, ny = y1 - y0 + 1, W = nx * 256;
   const data = new Float32Array(nx * ny * 65536).fill(NaN);
-  let hechas = 0, fallidas = 0;
+  let fallidas = 0;
   const trabajos = [];
   for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) trabajos.push([tx, ty]);
   await Promise.all(trabajos.map(async ([tx, ty]) => {
@@ -94,9 +95,19 @@ async function cargarDEM(A, progreso) {
         data[(oy + j) * W + ox + i] = px[k] * 256 + px[k + 1] + px[k + 2] / 256 - 32768;
       }
     } catch { fallidas++; }
-    progreso?.(++hechas / trabajos.length);
+    progreso?.();
   }));
-  Object.assign(DEM, { z, x0, y0, nx, ny, data, fallidas });
+  // tamaño de píxel en metros en el origen (para muestrear el perfil a esa resolución)
+  const pxm = 40075016.7 * Math.cos(O.lat * Math.PI / 180) / 2 ** z / 256;
+  return { z, x0, y0, nx, ny, data, fallidas, pxm, n: trabajos.length };
+}
+async function cargarDEM(A, progreso) {
+  const zc = A > 30000 ? 11 : 12; // z12 ≈ 30 m (SRTM 1"): la forma de los cerros tiene que calzar
+  const cuenta = (z, R) => { const [a, b] = aLL(-R, -R), [c, d] = aLL(R, R); return (Math.floor(lon2tx(c, z)) - Math.floor(lon2tx(a, z)) + 1) * (Math.floor(lat2ty(b, z)) - Math.floor(lat2ty(d, z)) + 1); };
+  const total = cuenta(zc, A * 1.05) + cuenta(10, LEJOS * 1.02);
+  let hechas = 0; const avance = () => progreso?.(++hechas / total);
+  const [cerca, lejos] = await Promise.all([mosaico(zc, A * 1.05, avance), mosaico(10, LEJOS * 1.02, avance)]);
+  Object.assign(DEM, cerca); DEM2 = lejos;
 }
 // Decodificador PNG mínimo (8 bits, RGB o RGBA). No se usa canvas.getImageData porque Brave (y otros navegadores
 // con protección anti-huella) le suman ruido a los píxeles: en Terrarium ±1 en el rojo son ±256 m → "conos" en el relieve.
@@ -125,14 +136,20 @@ async function decodificarPNG(buf) {
   }
   return { w, h, bpp, px: out };
 }
-function elevLL(lon, lat) {
-  const W = DEM.nx * 256, H = DEM.ny * 256;
-  let fx = lon2tx(lon, DEM.z) * 256 - DEM.x0 * 256 - 0.5, fy = lat2ty(lat, DEM.z) * 256 - DEM.y0 * 256 - 0.5;
-  fx = Math.min(Math.max(fx, 0), W - 1.001); fy = Math.min(Math.max(fy, 0), H - 1.001);
-  const i = fx | 0, j = fy | 0, u = fx - i, v = fy - j, d = DEM.data;
+function muestrear(M, lon, lat) {
+  if (!M) return NaN;
+  const W = M.nx * 256, H = M.ny * 256;
+  const fx = lon2tx(lon, M.z) * 256 - M.x0 * 256 - 0.5, fy = lat2ty(lat, M.z) * 256 - M.y0 * 256 - 0.5;
+  if (fx < 0 || fy < 0 || fx > W - 1.001 || fy > H - 1.001) return NaN;
+  const i = fx | 0, j = fy | 0, u = fx - i, v = fy - j, d = M.data;
   const a = d[j * W + i], b = d[j * W + i + 1], c = d[(j + 1) * W + i], e = d[(j + 1) * W + i + 1];
-  const h = (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + e * u) * v;
-  return Number.isFinite(h) ? h : (Number.isFinite(a) ? a : 0);
+  return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + e * u) * v;
+}
+// primero el mosaico fino; fuera de él (o en una tesela fallida) el lejano
+function elevLL(lon, lat) {
+  let h = muestrear(DEM, lon, lat);
+  if (!Number.isFinite(h)) h = muestrear(DEM2, lon, lat);
+  return Number.isFinite(h) ? h : 0;
 }
 // altura en el marco local, con curvatura terrestre y refracción
 function hLocal(e, n) {
@@ -226,7 +243,7 @@ function iniciarThree() {
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setClearColor(0x000000, 0);
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(60, 1, 8, 60000);
+  camera = new THREE.PerspectiveCamera(60, 1, 8, 110000);
   camera.rotation.order = 'YXZ';
   addEventListener('resize', ajustarTamano);
   ajustarTamano();
@@ -334,6 +351,31 @@ function construirTerreno(A) {
   terrenoColor = new THREE.Mesh(g, mColor); terrenoColor.renderOrder = 1;
   scene.add(terrenoProf, terrenoColor);
 }
+// Relieve lejano (hasta 70 km) solo para el modo explorar: fondo gris con niebla, para que el horizonte no flote en el cielo
+let terrenoLejos = null;
+function construirTerrenoLejano() {
+  const N = 201, L = LEJOS * 0.97, a = 0.25;
+  const s = u => L * u * (a + (1 - a) * Math.abs(u));
+  const pos = new Float32Array(N * N * 3), idx = [];
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const e = s(-1 + 2 * i / (N - 1)), n = s(-1 + 2 * j / (N - 1)), k = j * N + i;
+    pos[k * 3] = e; pos[k * 3 + 1] = hLocal(e, n) - 25; pos[k * 3 + 2] = -n; // 25 m más abajo: el relieve fino manda donde se solapan
+  }
+  for (let j = 0; j < N - 1; j++) for (let i = 0; i < N - 1; i++) { const k = j * N + i; idx.push(k, k + 1, k + N, k + 1, k + N + 1, k + N); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  const nor = g.attributes.normal, col = new Float32Array(N * N * 3), luz = new THREE.Vector3(-0.5, 0.75, 0.45).normalize(), cielo = new THREE.Color(0xbfd6ea);
+  for (let k = 0; k < N * N; k++) {
+    const sh = Math.max(0, nor.getX(k) * luz.x + nor.getY(k) * luz.y + nor.getZ(k) * luz.z);
+    const f = Math.min(1, Math.hypot(pos[k * 3], pos[k * 3 + 2]) / L) * 0.75;
+    const b = 0.42 + 0.55 * sh;
+    col[k * 3] = (0.60 * b) * (1 - f) + cielo.r * f; col[k * 3 + 1] = (0.58 * b) * (1 - f) + cielo.g * f; col[k * 3 + 2] = (0.55 * b) * (1 - f) + cielo.b * f;
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  terrenoLejos = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true }));
+  terrenoLejos.renderOrder = -1;
+  scene.add(terrenoLejos);
+}
 function actualizarModoShader() {
   if (!terrenoColor) return;
   const ar = ESC.modo === 'ar';
@@ -341,6 +383,7 @@ function actualizarModoShader() {
   terrenoColor.material.transparent = ar; terrenoColor.material.depthWrite = !ar;
   terrenoColor.material.needsUpdate = true;
   terrenoProf.visible = ar;
+  if (terrenoLejos) terrenoLejos.visible = !ar;
   terrenoColor.material.uniforms.opacidad.value = CFG.opacidad;
 }
 
@@ -414,19 +457,20 @@ function construirCandidatos(A) {
 let grupoPerfil = null, perfilPos = null;
 const MARGEN_OJO = 6, CERCA_IGNORADO = 200;
 async function calcularPerfil(gen) {
-  const c = camera.position.clone(), A = CFG.alcance * 0.97, NCOL = 3600, cols = new Array(NCOL);
+  const c = camera.position.clone(), A = CFG.alcance, L = LEJOS * 0.97, NCOL = 3600, cols = new Array(NCOL);
   // se ignoran los primeros 200 m y se suma un margen al ojo: el DEM de 30 m cerca de uno (casas, errores de metros) taparía todo
-  const ds = []; for (let d = 200; d < A * 1.42; d += Math.max(12, d * 0.0035)) ds.push(d);
+  // un paso por píxel: ~30 m dentro del alcance (mosaico fino), ~130 m más allá (mosaico lejano)
+  const ds = []; for (let d = 200; d < L * 1.42; d += d < A ? DEM.pxm * 0.9 : DEM2.pxm * 0.9) ds.push(d);
   const ojoY = c.y + MARGEN_OJO;
-  for (let i0 = 0; i0 < NCOL; i0 += 240) {
-    for (let i = i0; i < Math.min(NCOL, i0 + 240); i++) {
+  for (let i0 = 0; i0 < NCOL; i0 += 120) {
+    for (let i = i0; i < Math.min(NCOL, i0 + 120); i++) {
       const az = i / NCOL * 2 * Math.PI, se = Math.sin(az), co = Math.cos(az), pts = [];
       let maxT = -Infinity, vis = true, ult = null, cand = null, hondo = 0;
       // una cresta cuenta solo si lo que tapa queda al menos 25 m bajo la visual (evita el "ruido" de lomitas y del fondo de valle)
       const acepta = (cd, d) => cd && cd.d > 150 && hondo >= 25 && d > cd.d * 1.04;
       for (const d of ds) {
         const e = c.x + se * d, n = -c.z + co * d;
-        if (Math.abs(e) > A || Math.abs(n) > A) break;
+        if (Math.abs(e) > L || Math.abs(n) > L) break;
         const h = hLocal(e, n), t = (h - ojoY) / d;
         if (t >= maxT) {
           if (!vis && acepta(cand, d)) pts.push(cand);
@@ -465,7 +509,7 @@ async function calcularPerfil(gen) {
     if (cadena.length < 9) continue;
     for (let k = 0; k < cadena.length - 1; k++) {
       const a = cadena[k], b2 = cadena[k + 1], cielo = a.cielo && b2.cielo;
-      const b = cielo ? 1 : Math.max(0.5, 1 - a.d / (CFG.alcance * 1.6)); // lo lejano, más tenue
+      const b = cielo ? 1 : Math.max(0.45, 1 - a.d / (LEJOS * 1.3)); // lo lejano, más tenue
       (cielo ? posC : pos).push(a.e, a.h + 2, -a.n, b2.e, b2.h + 2, -b2.n);
       (cielo ? colC : col).push(b, b, b, b, b, b);
     }
@@ -495,7 +539,7 @@ function prepararCumbres(A) {
   const puestas = [];
   for (const [lon, lat, ele, nombre, volcan, radio] of CUMBRES) {
     let [e, n] = aEN(lon, lat);
-    if (Math.abs(e) > A * 0.95 || Math.abs(n) > A * 0.95) continue;
+    if (Math.abs(e) > LEJOS * 0.95 || Math.abs(n) > LEJOS * 0.95) continue;
     const r = radio || 300, paso = Math.max(25, r / 14);
     let hm = hLocal(e, n), em = e, nm = n;
     for (let dy = -r; dy <= r; dy += paso) for (let dx = -r; dx <= r; dx += paso) {
@@ -514,7 +558,7 @@ const _v = new THREE.Vector3();
 const _c = new THREE.Vector3();
 function visible(p) {
   _c.copy(camera.position); _c.y += MARGEN_OJO;
-  const d = _c.distanceTo(p), pasos = Math.min(70, Math.max(10, d / 140)), t0 = Math.min(0.5, CERCA_IGNORADO / d);
+  const d = _c.distanceTo(p), pasos = Math.min(400, Math.max(10, d / 120)), t0 = Math.min(0.5, CERCA_IGNORADO / d);
   for (let k = 1; k < pasos; k++) {
     const t = t0 + (k / pasos) * (0.985 - t0);
     _v.lerpVectors(_c, p, t);
@@ -855,7 +899,7 @@ async function abrirEn(lat, lon, modo, rumbo = 0) {
   document.body.dataset.modo = modo;
   $('#inicio').hidden = true; $('#escena').hidden = false;
   if (!renderer) iniciarThree();
-  for (const o of [terrenoColor, terrenoProf, grupoFallas, grupoPerfil]) if (o) { scene.remove(o); o.traverse?.(x => { x.geometry?.dispose(); x.material?.dispose(); }); }
+  for (const o of [terrenoColor, terrenoProf, grupoFallas, grupoPerfil, terrenoLejos]) if (o) { scene.remove(o); o.traverse?.(x => { x.geometry?.dispose(); x.material?.dispose(); }); }
   texMapa?.dispose();
   for (const [, e] of ETQ) e.el.remove(); ETQ.clear();
   try {
@@ -873,12 +917,13 @@ async function abrirEn(lat, lon, modo, rumbo = 0) {
     cargando('Cargando el relieve…');
     await cargarDEM(A, p => cargando(`Cargando el relieve… ${Math.round(p * 100)} %`));
     if (gen !== generacion) return;
-    if (DEM.fallidas) toast(`No se pudieron bajar ${DEM.fallidas} teselas de relieve: puede haber zonas planas falsas.`);
+    if (DEM.fallidas + (DEM2?.fallidas || 0)) toast(`No se pudieron bajar ${DEM.fallidas + (DEM2?.fallidas || 0)} teselas de relieve: puede haber zonas planas falsas.`);
     clasificarAguaHielo();
     cargando('Pintando los cerros…');
     await new Promise(r => setTimeout(r, 30));
     texMapa = pintarTextura(A);
     construirTerreno(A);
+    construirTerrenoLejano();
     construirFallas(A);
     construirCandidatos(A);
     prepararCumbres(A);
@@ -1113,4 +1158,4 @@ function iniciarUI() {
 iniciarUI();
 
 // para pruebas desde la consola
-window.GeoLente = { calcularPerfil: () => calcularPerfil(generacion), get grupoPerfil() { return grupoPerfil; }, _orient: (a, b, g, abs = true, extra = {}) => onOrientacion({ alpha: a, beta: b, gamma: g, ...extra }, abs), rumboDe, ESC, CFG, VISTA, S, abrirEn, abrirFicha, abrirFichaFalla, abrirColeccion, get FALLAS() { return FALLAS; }, unidadEn: (lat, lon) => unidadEn(lon, lat), hLocal, get camera() { return camera; } };
+window.GeoLente = { get DEM2() { return DEM2; }, get DEM() { return DEM; }, calcularPerfil: () => calcularPerfil(generacion), get grupoPerfil() { return grupoPerfil; }, _orient: (a, b, g, abs = true, extra = {}) => onOrientacion({ alpha: a, beta: b, gamma: g, ...extra }, abs), rumboDe, ESC, CFG, VISTA, S, abrirEn, abrirFicha, abrirFichaFalla, abrirColeccion, get FALLAS() { return FALLAS; }, unidadEn: (lat, lon) => unidadEn(lon, lat), hLocal, get camera() { return camera; } };
