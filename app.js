@@ -19,7 +19,7 @@ const CFG = {
 
 export const LUGARES = [
   { n: 'Santiago · Cerro San Cristóbal', lat: -33.4255, lon: -70.6335, rumbo: 95 },
-  { n: 'Cajón del Maipo · San José', lat: -33.6425, lon: -70.3525, rumbo: 80 },
+  { n: 'Farellones · hacia el cerro El Plomo', lat: -33.3530, lon: -70.3100, rumbo: 35 },
   { n: 'Valle del Elqui · Vicuña', lat: -30.0327, lon: -70.7080, rumbo: 100 },
   { n: 'San Pedro de Atacama', lat: -22.9130, lon: -68.2000, rumbo: 105 },
   { n: 'Pucón · Volcán Villarrica', lat: -39.2800, lon: -71.9600, rumbo: 175 },
@@ -520,7 +520,7 @@ function actualizarMira(t) {
     prevD = d; d += 15 + d * 0.012;
   }
   const el = $('#mirando');
-  if (!hit || hit.distanceTo(c) < CFG.fadeCerca) {
+  if (!hit || (ESC.modo === 'ar' && hit.distanceTo(c) < CFG.fadeCerca)) {
     miraActual = null; el.classList.remove('activo');
     el.innerHTML = `<span class="mir-vacio">Apunta la mira ⊕ a un cerro para saber de qué está hecho</span>`;
     return;
