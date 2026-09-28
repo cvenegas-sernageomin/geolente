@@ -5,7 +5,7 @@ import json, time, urllib.parse, urllib.request
 from pathlib import Path
 SERVIDORES = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter",
               "https://overpass.private.coffee/api/interpreter"]
-OUT = Path(__file__).resolve().parent.parent / "data" / "cumbres.json"
+OUT = Path(__file__).resolve().parent / "src" / "cumbres_osm.json"  # luego: combinar_cumbres.py
 def pedir(s, n):
     q = f'[out:json][timeout:120];node["natural"~"^(peak|volcano)$"]["name"]({s},-76.5,{n},-65.5);out body;'
     for intento in range(12):

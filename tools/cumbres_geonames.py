@@ -38,6 +38,6 @@ for n, la, lo, ele in VOLCANES:
     base = n.split()[-1]
     if any(base in m and abs(a - la) < 0.03 and abs(b - lo) < 0.03 for m, a, b in nombres): continue
     out.append([lo, la, ele, n, 1, 1500])
-dest = RAIZ.parent / "data" / "cumbres.json"
+dest = RAIZ / "src" / "cumbres_geonames.json"  # luego: combinar_cumbres.py
 dest.write_text(json.dumps({"fuente": "GeoNames (CC BY 4.0)", "c": out}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 print(len(out), "cumbres", f"{dest.stat().st_size / 1e6:.2f} MB")

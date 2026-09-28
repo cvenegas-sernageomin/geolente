@@ -17,7 +17,8 @@ divulgativas (edad, qué es, cómo reconocerla, dato curioso, contexto del mundo
 - **Perfil de los cerros** (estilo PeakVisor): por cada azimut (0,1°) se marcha por el relieve buscando las crestas
   que tapan lo de atrás (≥25 m bajo la visual), se unen entre azimuts vecinos y se descartan cadenas cortas. Se
   ignoran los primeros 200 m (el DEM cercano taparía todo). Sirve para calzar con 🎯 Ajustar.
-- **Cumbres**: GeoNames (CC BY 4.0) + volcanes principales agregados a mano (`tools/cumbres_geonames.py`); en la app
+- **Cumbres**: OpenStreetMap (ODbL, `tools/cumbres_osm.py`) + GeoNames (CC BY 4.0) donde OSM no tiene + volcanes a mano,
+  combinados con `tools/combinar_cumbres.py`; en la app
   cada cumbre se ajusta al punto más alto del relieve cercano porque las coordenadas de GeoNames pueden estar corridas.
 - **Mira central**: raycast sobre el relieve → unidad y distancia del punto al que apuntas.
 - **Modo explorar** (sin cámara): arrastrar para mirar, útil en escritorio y para probar. `?sim=lat,lon,rumbo`.

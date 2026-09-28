@@ -489,7 +489,7 @@ async function calcularPerfil(gen) {
 }
 
 // Las coordenadas de GeoNames pueden estar corridas: cada cumbre se lleva al punto más alto del relieve cercano
-// (300 m para cerros, lo indicado en el dato para volcanes agregados a mano).
+// (radio en el 6º campo: 120 m OSM, 300 m GeoNames por defecto, 1,5 km volcanes agregados a mano).
 function prepararCumbres(A) {
   ESC.cumbres = [];
   const puestas = [];
@@ -758,7 +758,7 @@ function abrirFichaCumbre(i) {
     <section><p class="grande">A ${fmtDist(d)} de ti</p></section>
     ${u ? `<section><h3>🪨 ¿De qué está hecha su cumbre?</h3>
       <button class="col-item" id="fi-roca"><i style="background:${u.color}"></i><span>${c.ico} <b>${esc(c.nombre)}</b><small>${esc(u.titulo)}${u.ma ? ' · ' + esc(fmtRango(u, true)) : ''}</small></span></button></section>` : ''}
-    <section class="oficial"><p>Nombre y altura: GeoNames (CC BY 4.0); posición ajustada al relieve. Roca: Mapa Geológico de Chile 1:1.000.000, SERNAGEOMIN.</p></section>`;
+    <section class="oficial"><p>Nombre y altura: © colaboradores de OpenStreetMap / GeoNames; posición ajustada al relieve. Roca: Mapa Geológico de Chile 1:1.000.000, SERNAGEOMIN.</p></section>`;
   if (u) $('#fi-roca').onclick = () => abrirFicha(cod);
   mostrarFicha();
 }
@@ -981,7 +981,7 @@ function mostrarAyuda() {
       <div class="ley"><i style="background:#42AED0"></i>Jurásico (145–201 Ma)</div><div class="ley"><i style="background:#983999"></i>Triásico (201–252 Ma)</div>
       <div class="ley"><i style="background:#67A599"></i>Paleozoico (252–539 Ma)</div><div class="ley"><i style="background:#E8485A"></i>Rocas intrusivas (rojos: más oscuro, más antiguo)</div>
       <p class="aviso">Ma = millones de años. Los colores siguen la carta cronoestratigráfica internacional.</p></section>
-    <section class="oficial"><h3>Fuentes</h3><p>Mapa Geológico de Chile 1:1.000.000 (SERNAGEOMIN, 2003) · Catálogo de Fallas Activas de Chile CHAF v1 (Melnick, Maldonado y Contreras, 2020; CC BY 4.0) · Nombres de cumbres: GeoNames (CC BY 4.0) · Relieve: teselas Terrarium (AWS Open Data, SRTM y otros) · Declinación magnética: WMM2025 (NOAA/BGS).</p>
+    <section class="oficial"><h3>Fuentes</h3><p>Mapa Geológico de Chile 1:1.000.000 (SERNAGEOMIN, 2003) · Catálogo de Fallas Activas de Chile CHAF v1 (Melnick, Maldonado y Contreras, 2020; CC BY 4.0) · Nombres de cumbres: © colaboradores de OpenStreetMap (ODbL) y GeoNames (CC BY 4.0) · Relieve: teselas Terrarium (AWS Open Data, SRTM y otros) · Declinación magnética: WMM2025 (NOAA/BGS).</p>
     <p class="aviso">Herramienta de divulgación. Escala regional: no reemplaza cartas geológicas de detalle ni estudios de peligros geológicos.</p></section>`;
   mostrarFicha();
 }
