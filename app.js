@@ -232,6 +232,7 @@ function iniciarThree() {
   ajustarTamano();
 }
 function ajustarTamano() {
+  if (!renderer) return; // la cámara puede encenderse antes que el visor 3D
   const w = innerWidth, h = innerHeight;
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
@@ -804,13 +805,19 @@ function onOrientacion(ev, absoluto) {
   const yaw = -(extra + S.decl + S.yawUsuario) * D;
   _qy.setFromAxisAngle(yAx, yaw); _qp.setFromAxisAngle(xAx, S.pitchUsuario * D);
   S.qObj.copy(_qy).multiply(_qa).multiply(_qp);
-  if (!S.tiene) S.qDisp.copy(S.qObj);
+  if (!S.tiene) {
+    S.qDisp.copy(S.qObj);
+    // si el aviso de "sin sensores" quedó abierto y los sensores llegaron después, se cierra solo
+    if (!$('#ficha').hidden && $('#ficha-cuerpo .diag')) { cerrarFicha(); toast('🧭 Orientación activa: el dibujo sigue tus movimientos.'); }
+  }
   S.tiene = true;
 }
 async function pedirPermisoOrientacion() {
   if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
     const r = await DeviceOrientationEvent.requestPermission(); if (r !== 'granted') throw new Error('orientación denegada');
   }
+  if (S.escuchando) return;
+  S.escuchando = true;
   if ('ondeviceorientationabsolute' in window) addEventListener('deviceorientationabsolute', e => onOrientacion(e, true));
   addEventListener('deviceorientation', e => onOrientacion(e, !!e.absolute));
 }
@@ -819,8 +826,11 @@ async function iniciarCamara() {
   const v = $('#cam'); v.srcObject = st; await v.play();
   v.addEventListener('loadedmetadata', ajustarTamano); ajustarTamano();
 }
-function obtenerPosicion() {
-  return new Promise((ok, mal) => navigator.geolocation.getCurrentPosition(p => ok(p.coords), mal, { enableHighAccuracy: true, timeout: 25000, maximumAge: 10000 }));
+function obtenerPosicion(precisa = true, espera = 25000) {
+  return new Promise((ok, mal) => {
+    if (!navigator.geolocation) return mal(new Error('Este navegador no tiene geolocalización.'));
+    navigator.geolocation.getCurrentPosition(p => ok(p.coords), mal, { enableHighAccuracy: precisa, timeout: espera, maximumAge: precisa ? 10000 : 300000 });
+  });
 }
 let vigilanciaGPS = null;
 function vigilarGPS() {
@@ -980,32 +990,83 @@ function volverInicio() {
   const v = $('#cam'); v.srcObject?.getTracks().forEach(t => t.stop()); v.srcObject = null;
 }
 
+// Traduce el error de cada paso a algo que el usuario pueda arreglar
+function motivo(err, paso) {
+  const n = err?.name || '', m = err?.message || String(err || '');
+  if (paso === 'gps') {
+    if (err?.code === 1) return 'Permiso de ubicación denegado. Toca el candado junto a la dirección → Permisos → Ubicación → Permitir. Revisa también en Ajustes del teléfono que Chrome tenga permiso de ubicación.';
+    if (err?.code === 2) return 'Ubicación no disponible: enciende la Ubicación (GPS) del teléfono.';
+    if (err?.code === 3) return 'El GPS no respondió a tiempo. Sal al aire libre y activa la ubicación precisa.';
+    return m;
+  }
+  if (n === 'NotAllowedError' || /denied|denegad/i.test(m)) return paso === 'camara'
+    ? 'Permiso de cámara denegado. Toca el candado junto a la dirección → Permisos → Cámara → Permitir. En incógnito, Chrome vuelve a preguntar cada vez y puede bloquear si antes se cerró el aviso.'
+    : 'Permiso de sensores de movimiento denegado.';
+  if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'No se encontró una cámara.';
+  if (n === 'NotReadableError') return 'La cámara está ocupada por otra aplicación: ciérrala e intenta de nuevo.';
+  return m;
+}
+function mostrarDiagnostico(d, fatal) {
+  const fila = (ico, nombre, v) => `<li class="diag-${v === 'ok' ? 'ok' : v === 'aviso' ? 'aviso' : 'mal'}"><b>${v === 'ok' ? '✅' : v === 'aviso' ? '⚠️' : '❌'} ${ico} ${nombre}</b>${v === 'ok' ? '' : `<span>${esc(d[nombre + '_txt'] || v)}</span>`}</li>`;
+  $('#ficha-cuerpo').innerHTML = `<header class="fi-cab" style="--c:${fatal ? '#ff5a36' : '#ffd21a'}"><span class="fi-ico">🩺</span><div><small>Revisión de la realidad aumentada</small><h2>${fatal ? 'No se pudo iniciar' : 'Funciona, con limitaciones'}</h2></div></header>
+    <section><ul class="diag">${fila('📷', 'Cámara', d.Cámara)}${fila('📍', 'Ubicación', d.Ubicación)}${fila('🧭', 'Orientación', d.Orientación)}</ul>
+    <p class="aviso">Navegador: ${esc(d.nav)}</p></section>
+    <section class="diag-acciones"><button class="btn primario" id="diag-reintentar">Reintentar</button>${fatal ? '<button class="btn" id="diag-explorar">Usar un lugar de ejemplo</button>' : ''}</section>`;
+  $('#diag-reintentar').onclick = () => { cerrarFicha(); empezarAR(); };
+  if (fatal) $('#diag-explorar').onclick = () => { cerrarFicha(); const l = LUGARES[0]; abrirEn(l.lat, l.lon, 'explorar', l.rumbo); };
+  mostrarFicha();
+}
 async function empezarAR() {
   const btn = $('#btn-ar'); btn.disabled = true;
+  const ua = navigator.userAgent;
+  const d = { nav: (navigator.brave ? 'Brave' : /SamsungBrowser/.test(ua) ? 'Samsung Internet' : /CriOS|Chrome/.test(ua) ? 'Chrome' : /Safari/.test(ua) ? 'Safari' : 'otro') + (isSecureContext ? '' : ' · sin https') };
   try {
-    if (!isSecureContext) throw new Error('La cámara requiere una conexión segura (https).');
-    await pedirPermisoOrientacion();   // en iPhone debe ir primero, dentro del toque
+    // 1) sensores (en iPhone el permiso debe pedirse primero, dentro del toque). No es fatal.
+    try { await pedirPermisoOrientacion(); d.Orientación = 'pendiente'; }
+    catch (e) { d.Orientación = 'mal'; d.Orientación_txt = motivo(e, 'sensores'); }
+    // 2) cámara. No es fatal: sin cámara se sigue sobre fondo oscuro.
     cargando('Pidiendo acceso a la cámara…');
-    await iniciarCamara();
-    cargando('Buscando tu ubicación (GPS)…');
-    const c = await obtenerPosicion();
+    try {
+      if (!isSecureContext || !navigator.mediaDevices?.getUserMedia) throw new Error('La cámara requiere una conexión segura (https).');
+      await iniciarCamara(); d.Cámara = 'ok';
+    } catch (e) { console.error(e); d.Cámara = 'mal'; d.Cámara_txt = motivo(e, 'camara'); }
+    // 3) GPS: primero preciso; si no responde, uno aproximado (antena/wifi)
+    cargando('Buscando tu ubicación…');
+    let c = null;
+    try { c = await obtenerPosicion(true, 15000); }
+    catch (e1) {
+      cargando('El GPS tarda: probando una ubicación aproximada…');
+      try { c = await obtenerPosicion(false, 12000); } catch (e2) { d.Ubicación_txt = motivo(e2.code === 3 && e1.code !== 3 ? e1 : e2, 'gps'); }
+    }
+    if (!c) {
+      cargando(); d.Ubicación = 'mal';
+      if (d.Orientación === 'pendiente') d.Orientación = 'ok';
+      const v = $('#cam'); v.srcObject?.getTracks().forEach(t => t.stop()); v.srcObject = null;
+      mostrarDiagnostico(d, true); return;
+    }
+    d.Ubicación = c.accuracy > 200 ? 'aviso' : 'ok';
+    if (c.accuracy > 200) d.Ubicación_txt = `Ubicación aproximada (± ${nf0.format(c.accuracy)} m): el dibujo puede quedar corrido. Activa la ubicación precisa.`;
     ESC.modo = 'ar';
     await abrirEn(c.latitude, c.longitude, 'ar');
     $('#gps').textContent = `± ${nf0.format(c.accuracy)} m`;
     vigilarGPS();
     setTimeout(async () => {
-      if (!S.tiene) {
-        const brave = await navigator.brave?.isBrave?.().catch(() => false);
-        VISTA.pitch = 0;
-        toast(brave
-          ? 'Brave bloquea los sensores de orientación. Arrastra con el dedo para apuntar, o abre GeoLente en Chrome para que siga tus movimientos.'
-          : 'Tu teléfono no entrega la orientación. Arrastra con el dedo para apuntar el dibujo a los cerros.', 9000);
-      } else if (!S.absoluto) toast('Sin brújula absoluta: alinea con 🎯 Ajustar.', 6000);
-    }, 2500);
+      if (d.Orientación !== 'mal') {
+        if (!S.tiene) {
+          const brave = await navigator.brave?.isBrave?.().catch(() => false);
+          d.Orientación = 'aviso';
+          d.Orientación_txt = brave ? 'Brave bloquea los sensores de movimiento: apunta arrastrando con el dedo o abre GeoLente en Chrome (sin incógnito).'
+            : 'El navegador no entrega los sensores de movimiento (en Chrome: candado → Permisos → Sensores de movimiento). Mientras, apunta arrastrando con el dedo.';
+          VISTA.pitch = 0;
+        } else if (!S.absoluto) { d.Orientación = 'aviso'; d.Orientación_txt = 'Hay sensores pero no brújula absoluta: alinea con 🎯 Ajustar.'; }
+        else d.Orientación = 'ok';
+      }
+      if (d.Cámara !== 'ok' || d.Orientación !== 'ok' || d.Ubicación !== 'ok') mostrarDiagnostico(d, false);
+    }, 4000);
   } catch (err) {
     console.error(err); cargando();
     volverInicio();
-    toast((err.message || String(err)).includes('denied') || err.name === 'NotAllowedError' ? 'Sin permiso para cámara, sensores o GPS. Puedes usar el modo explorar.' : 'No se pudo iniciar la realidad aumentada: ' + (err.message || err), 6500);
+    toast('No se pudo iniciar la realidad aumentada: ' + (err.message || err), 8000);
   } finally { btn.disabled = false; }
 }
 
