@@ -964,9 +964,25 @@ function bucle(t) {
     renderer.render(scene, camera);
     const nueva = seleccionarEtiquetas(t); posicionarEtiquetas(nueva); actualizarMira(t);
     const rumbo = (rumboDe(camera.quaternion) + 360) % 360;
+    rosaCompas.setAttribute('transform', `rotate(${-rumbo.toFixed(1)} 160 170)`);
     $('#brujula').textContent = `${['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'][Math.round(rumbo / 45) % 8]} ${nf0.format(rumbo)}°`;
   }
 }
+
+// Brújula parcial: círculo de radio 160 centrado en (160,170); solo asoma el arco superior y gira con el rumbo
+const rosaCompas = $('#compas-rosa');
+(function dibujarCompas() {
+  const NS = 'http://www.w3.org/2000/svg', R = 160, cx = 160, cy = 170; let s = '';
+  for (let d = 0; d < 360; d += 5) {
+    const g = d % 45 === 0, len = g ? 14 : d % 15 === 0 ? 9 : 5, a = d * Math.PI / 180;
+    s += `<line class="c-tk${g ? ' g' : ''}" x1="${cx + Math.sin(a) * R}" y1="${cy - Math.cos(a) * R}" x2="${cx + Math.sin(a) * (R - len)}" y2="${cy - Math.cos(a) * (R - len)}"/>`;
+  }
+  ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'].forEach((t, i) => {
+    const a = i * 45 * Math.PI / 180, r = R - 30, x = cx + Math.sin(a) * r, y = cy - Math.cos(a) * r;
+    s += `<text class="${t === 'N' ? 'n' : t.length > 1 ? 's' : ''}" x="${x}" y="${y + 5}" transform="rotate(${i * 45} ${x} ${y})">${t}</text>`;
+  });
+  rosaCompas.innerHTML = s;
+})();
 
 let calibrando = false;
 function instalarGestos() {

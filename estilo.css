@@ -81,7 +81,7 @@ body:not([data-modo="ar"]) #cam, body:not([data-modo="ar"]) .solo-ar { display: 
 .mir-txt em { font-style: normal; font-size: 13px; color: #d7e2ee; }
 .mir-falla { font-size: 12px; background: rgba(255,90,54,.2); color: #ffb3a1; border-radius: 8px; padding: 3px 7px; white-space: nowrap; }
 .mir-mas { font-size: 28px; color: var(--suave); }
-#pisando { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(88px + var(--sib)); border: 1px solid var(--borde);
+#pisando { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(150px + var(--sib)); border: 1px solid var(--borde);
   background: var(--panel); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 999px; padding: 6px 12px; font-size: 13px;
   box-shadow: inset 4px 0 0 var(--c); white-space: nowrap; }
 #pisando small { color: var(--suave); }
@@ -193,3 +193,14 @@ body.calibrando #mira { border-color: #2f8cff; }
 .flecha-instalar.arriba.derecha { right: 8px; } .flecha-instalar.abajo.derecha { left: auto; right: 14px; margin-left: 0; }
 @keyframes rebote { 50% { transform: translateY(8px); } }
 @keyframes rebote-arriba { 50% { transform: translateY(-8px); } }
+
+/* ---------- brújula parcial (asoma sobre la tarjeta inferior, como PeakVisor) */
+#compas { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(84px + var(--sib)); width: min(320px, 92vw); height: 60px; pointer-events: none;
+  overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent); mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent); }
+#compas svg { width: 100%; height: 100%; display: block; overflow: visible; filter: drop-shadow(0 1px 2px rgba(0,0,0,.8)); }
+#compas .c-tk { stroke: rgba(255,255,255,.75); stroke-width: 1.4; }
+#compas .c-tk.g { stroke-width: 2.2; stroke: #fff; }
+#compas text { fill: #fff; font: 700 15px system-ui, sans-serif; text-anchor: middle; }
+#compas text.n { fill: #ff5a36; font-size: 19px; }
+#compas text.s { font-size: 11px; font-weight: 600; fill: rgba(255,255,255,.85); }
+#compas .c-aguja { fill: #ff5a36; stroke: #fff; stroke-width: 1; }
