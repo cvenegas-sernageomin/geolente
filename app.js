@@ -21,12 +21,9 @@ const CFG = {
 };
 
 export const LUGARES = [
-  { n: 'Santiago · Cerro San Cristóbal', lat: -33.4255, lon: -70.6335, rumbo: 95 },
-  { n: 'Farellones · hacia el cerro El Plomo', lat: -33.3530, lon: -70.3100, rumbo: 35 },
-  { n: 'Valle del Elqui · Vicuña', lat: -30.0327, lon: -70.7080, rumbo: 100 },
-  { n: 'San Pedro de Atacama', lat: -22.9130, lon: -68.2000, rumbo: 105 },
-  { n: 'Pucón · Volcán Villarrica', lat: -39.2800, lon: -71.9600, rumbo: 175 },
-  { n: 'Torres del Paine', lat: -51.0630, lon: -72.9985, rumbo: 330 },
+  { n: 'Torres del Paine · Paine Grande', ico: '🏔️', d: 'Los Cuernos y el Paine Grande a pocos kilómetros, con más de 2.500 m de desnivel sobre el lago.', lat: -51.0545, lon: -73.0725, rumbo: 0 },
+  { n: 'Baños Morales · Cajón del Maipo', ico: '🌋', d: 'El volcán San José y las paredes del Morado se alzan a pocos kilómetros de un valle angosto.', lat: -33.7925, lon: -70.0803, rumbo: 0 },
+  { n: 'Parque Queulat · Aysén', ico: '🧊', d: 'Cumbres cortadas a pico y glaciares que cuelgan sobre el valle, a pocos kilómetros.', lat: -44.4000, lon: -72.3300, rumbo: 0 },
 ];
 
 // ------------------------------------------------------------------ utilidades
@@ -897,7 +894,18 @@ function vigilarGPS() {
 
 // ------------------------------------------------------------------ carga de un lugar
 let generacion = 0;
-async function abrirEn(lat, lon, modo, rumbo = 0) {
+// Rumbo con más relieve al frente: ventana de 90° con mayor ángulo de elevación medio del terreno (1,5–12 km)
+function mejorRumbo() {
+  const alt = hLocal(0, 0) + 25, por = new Array(180).fill(-90);
+  for (let a = 0; a < 180; a++) for (let d = 1500; d <= 12000; d += 400) {
+    const r = a * 2 * Math.PI / 180, ang = Math.atan2(hLocal(d * Math.sin(r), d * Math.cos(r)) - alt, d) * 180 / Math.PI;
+    if (ang > por[a]) por[a] = ang;
+  }
+  let mejor = 0, mv = -1e9;
+  for (let i = 0; i < 180; i++) { let s = 0; for (let k = 0; k < 45; k++) s += por[(i + k) % 180]; if (s > mv) { mv = s; mejor = i; } }
+  return (mejor * 2 + 45) % 360;
+}
+async function abrirEn(lat, lon, modo, rumbo = 0, nombre = null) {
   const gen = ++generacion;
   ESC.listo = false; ESC.modo = modo;
   document.body.dataset.modo = modo;
@@ -932,12 +940,12 @@ async function abrirEn(lat, lon, modo, rumbo = 0) {
     construirCandidatos(A);
     prepararCumbres(A);
     camera.position.set(0, hLocal(0, 0) + (modo === 'ar' ? CFG.ojo : 25), 0); // explorar: vista de dron bajo, evita que el plano cercano corte el suelo
-    if (modo !== 'ar') { VISTA.yaw = rumbo; VISTA.pitch = -2; }
+    if (modo !== 'ar') { VISTA.yaw = rumbo == null || rumbo === 0 && nombre ? mejorRumbo() : rumbo; VISTA.pitch = -2; }
     actualizarModoShader(); ajustarTamano();
     ESC.listo = true; cargando();
     calcularPerfil(gen);
     actualizarPisando();
-    $('#lugar').textContent = modo === 'ar' ? 'Tu ubicación' : (LUGARES.find(l => Math.abs(l.lat - lat) < 1e-3 && Math.abs(l.lon - lon) < 1e-3)?.n || `${nf1.format(lat)}°, ${nf1.format(lon)}°`);
+    $('#lugar').textContent = modo === 'ar' ? 'Tu ubicación' : (nombre || LUGARES.find(l => Math.abs(l.lat - lat) < 1e-3 && Math.abs(l.lon - lon) < 1e-3)?.n || `${nf1.format(lat)}°, ${nf1.format(lon)}°`);
     if (!leer('visto-ayuda')) { mostrarAyuda(); guardar('visto-ayuda', '1'); }
   } catch (err) {
     console.error(err); cargando(); toast('No se pudo cargar este lugar: ' + (err.message || err), 6000);
@@ -1132,7 +1140,7 @@ function mostrarDiagnostico(d, fatal) {
     <p class="aviso">Navegador: ${esc(d.nav)}</p></section>
     <section class="diag-acciones"><button class="btn primario" id="diag-reintentar">Reintentar</button>${fatal ? '<button class="btn" id="diag-explorar">Usar un lugar de ejemplo</button>' : ''}</section>`;
   $('#diag-reintentar').onclick = () => { cerrarFicha(); empezarAR(); };
-  if (fatal) $('#diag-explorar').onclick = () => { cerrarFicha(); const l = LUGARES[0]; abrirEn(l.lat, l.lon, 'explorar', l.rumbo); };
+  if (fatal) $('#diag-explorar').onclick = () => { cerrarFicha(); const l = LUGARES[0]; abrirEn(l.lat, l.lon, 'explorar', null, l.n); };
   mostrarFicha();
 }
 async function empezarAR() {
@@ -1189,10 +1197,40 @@ async function empezarAR() {
   } finally { btn.disabled = false; }
 }
 
+// ------------------------------------------------------------------ buscador de localidades
+let LOCALIDADES = null;
+const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+function iniciarBuscador() {
+  const q = $('#q'), res = $('#q-res'); let lista = [];
+  const cargar = async () => {
+    if (LOCALIDADES) return;
+    try { const j = await (await fetch('data/localidades.json')).json(); LOCALIDADES = { r: j.r, l: j.l.map(x => ({ n: x[0], lat: x[1], lon: x[2], r: j.r[x[3]], k: norm(x[0]) })) }; } catch { LOCALIDADES = { r: [], l: [] }; }
+  };
+  const buscar = async () => {
+    const t = norm(q.value); if (t.length < 2) { res.hidden = true; return; }
+    await cargar();
+    const ini = [], med = [];
+    for (const x of LOCALIDADES.l) { // ya vienen ordenadas por población
+      const i = x.k.indexOf(t); if (i < 0) continue;
+      (i === 0 || x.k[i - 1] === ' ' ? ini : med).push(x);
+      if (ini.length >= 8) break;
+    }
+    lista = ini.concat(med).slice(0, 8);
+    res.hidden = false;
+    res.innerHTML = lista.length ? lista.map((x, i) => `<button data-i="${i}">${esc(x.n)}<small>${esc(x.r)}</small></button>`).join('') : '<span class="vacio">No encontré esa localidad. Prueba con otra escritura.</span>';
+  };
+  q.addEventListener('input', buscar);
+  q.addEventListener('focus', cargar, { once: true });
+  q.addEventListener('keydown', e => { if (e.key === 'Enter' && lista[0]) { e.preventDefault(); ir(lista[0]); } });
+  const ir = x => { q.blur(); res.hidden = true; abrirEn(x.lat, x.lon, 'explorar', null, `${x.n} · ${x.r}`); };
+  res.onclick = e => { const b = e.target.closest('[data-i]'); if (b) ir(lista[+b.dataset.i]); };
+}
+
 // ------------------------------------------------------------------ interfaz
 function iniciarUI() {
-  $('#lugares').innerHTML = LUGARES.map((l, i) => `<button class="chip" data-i="${i}">${esc(l.n)}</button>`).join('');
-  $('#lugares').onclick = e => { const b = e.target.closest('[data-i]'); if (b) { const l = LUGARES[+b.dataset.i]; abrirEn(l.lat, l.lon, 'explorar', l.rumbo); } };
+  $('#lugares').innerHTML = LUGARES.map((l, i) => `<button data-i="${i}"><span class="t-ico">${l.ico}</span><span><b>${esc(l.n)}</b><small>${esc(l.d)}</small></span></button>`).join('');
+  $('#lugares').onclick = e => { const b = e.target.closest('[data-i]'); if (b) { const l = LUGARES[+b.dataset.i]; abrirEn(l.lat, l.lon, 'explorar', null, l.n); } };
+  iniciarBuscador();
   $('#btn-ar').onclick = empezarAR;
   $('#btn-explorar-aqui').onclick = async () => {
     try { cargando('Buscando tu ubicación…'); const c = await obtenerPosicion(); abrirEn(c.latitude, c.longitude, 'explorar', 0); }

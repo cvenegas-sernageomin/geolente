@@ -39,8 +39,12 @@
   <div class="acciones">
     <button id="btn-ar" class="btn primario">📷 Mirar los cerros con la cámara</button>
     <button id="btn-explorar-aqui" class="btn">🗺️ Explorar mi zona sin cámara</button>
-    <p class="sub">O viaja a un lugar de ejemplo:</p>
-    <div id="lugares" class="chips-lugares"></div>
+    <div class="buscador">
+      <input id="q" type="search" placeholder="🔎 Busca una localidad de Chile" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Buscar localidad">
+      <div id="q-res" hidden></div>
+    </div>
+    <p class="sub">Tres vistas alucinantes: relieve abrupto y muy cerca</p>
+    <div id="lugares" class="tarjetas-lugares"></div>
   </div>
   <p class="pie">Datos: Mapa Geológico de Chile 1:1.000.000 (SERNAGEOMIN) · Fallas activas CHAF (Melnick et al., 2020).<br>Funciona mejor al aire libre, con vista despejada a los cerros.</p>
 </main>
