@@ -55,6 +55,19 @@ function toast(t, ms = 3200) {
 }
 function cargando(t) { const el = $('#cargando'); if (t) { el.querySelector('p').textContent = t; el.hidden = false; } else el.hidden = true; }
 
+// ------------------------------------------------------------------ pantalla horizontal "virtual"
+// Si la pantalla queda fija en vertical (PWA bloqueada o rotación automática apagada) y el teléfono se pone
+// horizontal, la app gira ella misma la interfaz: VIRT = ángulo de pantalla simulado (0, 90 o -90).
+let VIRT = 0;
+const VW = () => VIRT ? innerHeight : innerWidth, VH = () => VIRT ? innerWidth : innerHeight;
+function aVirtual(x, y) { return VIRT === 90 ? { x: y, y: innerWidth - x } : VIRT === -90 ? { x: innerHeight - y, y: x } : { x, y }; }
+function fijarVirt(a) {
+  if (a === VIRT) return;
+  VIRT = a;
+  document.body.classList.toggle('virt90', a === 90); document.body.classList.toggle('virt-90', a === -90);
+  ajustarTamano();
+}
+
 // ------------------------------------------------------------------ proyección local
 let O = null;
 function setOrigen(lat, lon) {
@@ -247,7 +260,8 @@ function iniciarThree() {
 }
 function ajustarTamano() {
   if (!renderer) return; // la cámara puede encenderse antes que el visor 3D
-  const w = innerWidth, h = innerHeight;
+  const b = document.body.style; b.setProperty('--W', innerWidth + 'px'); b.setProperty('--H', innerHeight + 'px');
+  const w = VW(), h = VH();
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.fov = fovVertical();
@@ -258,11 +272,11 @@ function ajustarTamano() {
 // FOV vertical visible en pantalla, a partir del FOV del lado largo del video y del recorte "cover".
 function fovVertical() {
   if (ESC.modo !== 'ar') return CFG.fovExplorar || 60;
-  const v = $('#cam'), sw = innerWidth, sh = innerHeight;
+  const v = $('#cam'), sw = innerWidth, sh = innerHeight; // el video siempre se muestra en el marco real del teléfono
   let vw = v.videoWidth || 1080, vh = v.videoHeight || 1920;
   const esc = Math.max(sw / vw, sh / vh), dw = vw * esc, dh = vh * esc;
   const f = (Math.max(dw, dh) / 2) / Math.tan(CFG.fovLargo * Math.PI / 360);
-  return 2 * Math.atan((sh / 2) / f) * 180 / Math.PI;
+  return 2 * Math.atan((VH() / 2) / f) * 180 / Math.PI;
 }
 
 const VS = `
@@ -409,11 +423,11 @@ function construirFallas(A) {
           const color = COLOR_ACT[f.act] || 0xff7a1a;
           const discont = /inferida|cubierta|ciega/.test(f.tipo);
           const mat = new LineMaterial({ color, linewidth: 4.5, dashed: discont, dashSize: 220, gapSize: 140, transparent: true, opacity: 0.95, depthTest: true, depthWrite: false });
-          mat.resolution.set(innerWidth, innerHeight);
+          mat.resolution.set(VW(), VH());
           const l = new Line2(geo, mat); if (discont) l.computeLineDistances();
           l.renderOrder = 3; grupoFallas.add(l);
           const halo = new LineMaterial({ color: 0x10141c, linewidth: 8, transparent: true, opacity: 0.4, depthTest: true, depthWrite: false });
-          halo.resolution.set(innerWidth, innerHeight);
+          halo.resolution.set(VW(), VH());
           const lh = new Line2(geo, halo); lh.renderOrder = 2; grupoFallas.add(lh);
           ESC.fallas.push({ fi, pts: tramo.slice() });
           for (let k = 0; k < tramo.length; k += 8) {
@@ -520,7 +534,7 @@ async function calcularPerfil(gen) {
     const mb = new LineMaterial({ color: 0x0b1018, linewidth: ancho + 2.4, transparent: true, opacity: 0.55, depthTest: false, depthWrite: false });
     const m = new LineMaterial({ vertexColors: true, linewidth: ancho, transparent: true, opacity: 0.95, depthTest: false, depthWrite: false });
     for (const [mat, orden] of [[mb, 5], [m, 6]]) {
-      mat.resolution.set(innerWidth, innerHeight);
+      mat.resolution.set(VW(), VH());
       const l = new LineSegments2(g, mat); l.renderOrder = orden; grupoPerfil.add(l);
     }
   }
@@ -566,7 +580,7 @@ function visible(p) {
 function enPantalla(p, out) {
   _v.copy(p).project(camera);
   if (_v.z > 1 || _v.z < -1 || Math.abs(_v.x) > 1.05 || Math.abs(_v.y) > 1.05) return false;
-  out.x = (_v.x + 1) / 2 * innerWidth; out.y = (1 - _v.y) / 2 * innerHeight; return true;
+  out.x = (_v.x + 1) / 2 * VW(); out.y = (1 - _v.y) / 2 * VH(); return true;
 }
 
 // ------------------------------------------------------------------ etiquetas
@@ -614,7 +628,7 @@ function seleccionarEtiquetas(t) {
     const grupos = new Map(), sp = { x: 0, y: 0 };
     for (const c of ESC.cand) {
       if (!enPantalla(c.pos, sp)) continue;
-      if (sp.y < 70 || sp.y > innerHeight - 150) continue;
+      if (sp.y < 70 || sp.y > VH() - 150) continue;
       if (!visible(c.pos)) continue;
       let g = grupos.get(c.cod); if (!g) grupos.set(c.cod, g = { n: 0, sx: 0, sy: 0, lista: [] });
       g.n += c.peso; g.sx += sp.x * c.peso; g.sy += sp.y * c.peso; g.lista.push([c, sp.x, sp.y]);
@@ -633,7 +647,7 @@ function seleccionarEtiquetas(t) {
       // cumbres: las más destacadas en pantalla (mayor ángulo de elevación), separadas al menos 90 px
       const vis = [], sp4 = { x: 0, y: 0 }, c0 = camera.position;
       ESC.cumbres.forEach((k, i) => {
-        if (!enPantalla(k.pos, sp4) || sp4.y < 90 || sp4.y > innerHeight - 160) return;
+        if (!enPantalla(k.pos, sp4) || sp4.y < 90 || sp4.y > VH() - 160) return;
         const d = Math.hypot(k.pos.x - c0.x, k.pos.z - c0.z);
         vis.push({ i, x: sp4.x, t: (k.pos.y - c0.y) / d, k });
       });
@@ -650,9 +664,9 @@ function seleccionarEtiquetas(t) {
       // una etiqueta por falla con nombre (el catálogo divide muchas fallas en varios tramos)
       const cf = new Map(), sp2 = { x: 0, y: 0 };
       for (const c of ESC.candF) {
-        if (!enPantalla(c.pos, sp2) || sp2.y < 70 || sp2.y > innerHeight - 150) continue;
+        if (!enPantalla(c.pos, sp2) || sp2.y < 70 || sp2.y > VH() - 150) continue;
         const clave = '§' + (FALLAS.f[c.fi].n || '#' + c.fi);
-        const dc = Math.hypot(sp2.x - innerWidth / 2, sp2.y - innerHeight / 2);
+        const dc = Math.hypot(sp2.x - VW() / 2, sp2.y - VH() / 2);
         const prev = cf.get(clave);
         if (prev && prev.dc <= dc) continue;
         if (!visible(c.pos)) continue;
@@ -690,7 +704,7 @@ function posicionarEtiquetas(medir) {
     const esCumbre = k.startsWith('▲');
     let alto = esCumbre ? 16 : 46, ok = false;
     // desplazamiento horizontal para que la caja no se salga de la pantalla (el palito sigue en el punto)
-    const dx = sp.x - e.w / 2 < 8 ? 8 + e.w / 2 - sp.x : sp.x + e.w / 2 > innerWidth - 8 ? innerWidth - 8 - e.w / 2 - sp.x : 0;
+    const dx = sp.x - e.w / 2 < 8 ? 8 + e.w / 2 - sp.x : sp.x + e.w / 2 > VW() - 8 ? VW() - 8 - e.w / 2 - sp.x : 0;
     for (let intento = 0; intento < (esCumbre ? 1 : 4) && !ok; intento++, alto += e.h + 8) {
       const caja = { x0: sp.x + dx - e.w / 2, x1: sp.x + dx + e.w / 2, y0: sp.y - alto - e.h, y1: sp.y - alto };
       ok = caja.y0 > 64 && !colocadas.some(c => caja.x0 < c.x1 + 6 && caja.x1 > c.x0 - 6 && caja.y0 < c.y1 + 4 && caja.y1 > c.y0 - 4);
@@ -831,11 +845,23 @@ function quatDispositivo(alpha, beta, gamma, orient, out) {
 }
 function rumboDe(q) { const f = new THREE.Vector3(0, 0, -1).applyQuaternion(q); return Math.atan2(f.x, -f.z) * 180 / Math.PI; }
 const _qa = new THREE.Quaternion(), _qy = new THREE.Quaternion(), _qp = new THREE.Quaternion(), yAx = new THREE.Vector3(0, 1, 0), xAx = new THREE.Vector3(1, 0, 0);
+const _qh = new THREE.Quaternion(), _uh = new THREE.Vector3();
+function detectarHorizontal(ev, D, angReal) {
+  if (ESC.modo !== 'ar' || angReal !== 0 || innerWidth > innerHeight) return fijarVirt(0); // el sistema ya rota la pantalla
+  quatDispositivo(ev.alpha * D, ev.beta * D, ev.gamma * D, 0, _qh);
+  _uh.set(0, 1, 0).applyQuaternion(_qh.invert()); // "arriba" del mundo visto desde el teléfono
+  if (Math.hypot(_uh.x, _uh.y) < 0.5) return; // teléfono casi plano: se mantiene como está
+  const giro = Math.atan2(_uh.x, _uh.y) / D; // 0 vertical, +90 con la parte de arriba hacia la izquierda
+  if (Math.abs(envolver(giro - VIRT)) < 60) return; // histéresis: no parpadea cerca de 45°
+  const a = Math.round(giro / 90) * 90;
+  fijarVirt(a === 90 || a === -90 ? a : 0);
+}
 function onOrientacion(ev, absoluto) {
   if (ev.alpha == null) return;
   if (!absoluto && S.absoluto && ev.webkitCompassHeading == null) return; // ya tenemos la absoluta
-  const D = Math.PI / 180, orient = (screen.orientation?.angle ?? window.orientation ?? 0) * D;
-  quatDispositivo(ev.alpha * D, ev.beta * D, ev.gamma * D, orient, _qa);
+  const D = Math.PI / 180, angReal = screen.orientation?.angle ?? window.orientation ?? 0;
+  detectarHorizontal(ev, D, angReal);
+  quatDispositivo(ev.alpha * D, ev.beta * D, ev.gamma * D, (angReal + VIRT) * D, _qa);
   let extra = 0;
   if (ev.webkitCompassHeading != null) { // iOS: alpha es relativo; se corrige con la brújula (solo con el teléfono vertical)
     const acc = ev.webkitCompassAccuracy; // grados de error; -1 = brújula sin calibrar
@@ -1076,16 +1102,18 @@ function instalarGestos() {
   el.addEventListener('pointerdown', e => {
     if (e.target.closest('.etq, button, #ficha, .panel, #mirando, #pisando, #compas, #calib-panel')) return;
     const conSensores = ESC.modo === 'ar' && S.tiene;
-    arr = { x: e.clientX, y: e.clientY, yaw: conSensores ? S.yawUsuario : VISTA.yaw, pitch: conSensores ? S.pitchUsuario : VISTA.pitch, x0: relieveX() };
+    const q = aVirtual(e.clientX, e.clientY);
+    arr = { x: q.x, y: q.y, yaw: conSensores ? S.yawUsuario : VISTA.yaw, pitch: conSensores ? S.pitchUsuario : VISTA.pitch, x0: relieveX() };
     el.setPointerCapture(e.pointerId);
   });
   el.addEventListener('pointermove', e => {
     if (!arr) return;
     if (!innerHeight) return;
-    const gpp = camera.fov / innerHeight; // grados por píxel
-    const dx = (e.clientX - arr.x) * gpp, dy = (e.clientY - arr.y) * gpp;
+    const q = aVirtual(e.clientX, e.clientY);
+    const gpp = camera.fov / VH(); // grados por píxel
+    const dx = (q.x - arr.x) * gpp, dy = (q.y - arr.y) * gpp;
     if (ESC.modo === 'ar' && calibrando && calibPaso === 2) {
-      fijarRelieve(arr.x0 * Math.exp(-(e.clientY - arr.y) / 260)); // hacia arriba = relieve más alto
+      fijarRelieve(arr.x0 * Math.exp(-(q.y - arr.y) / 260)); // hacia arriba = relieve más alto
     } else if (ESC.modo === 'ar' && S.tiene) {
       if (!calibrando) return;
       S.yawUsuario = arr.yaw - dx; S.pitchUsuario = arr.pitch - dy;

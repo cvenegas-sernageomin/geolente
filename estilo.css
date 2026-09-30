@@ -250,3 +250,35 @@ body.calib-escala #calib-lista { display: none; }
 .tarjetas-lugares b { display: block; font-size: 16px; }
 .tarjetas-lugares small { display: block; margin-top: 2px; font-size: 12.5px; line-height: 1.35; color: rgba(255,255,255,.75); }
 body.calib-escala #compas, body.calib-escala #compas-num { display: none; }
+
+/* horizontal "virtual": la pantalla sigue en vertical pero el teléfono está horizontal → se gira la interfaz */
+body.virt90 #escena, body.virt90 #ficha, body.virt-90 #escena, body.virt-90 #ficha { inset: auto; left: 0; top: 0; width: var(--H); height: var(--W); transform-origin: 0 0; }
+body.virt90 #escena, body.virt90 #ficha { transform: translateX(var(--W)) rotate(90deg); }
+body.virt-90 #escena, body.virt-90 #ficha { transform: translateY(var(--H)) rotate(-90deg); }
+body.virt90 #cam, body.virt-90 #cam { inset: auto; left: 0; top: 0; width: var(--W); height: var(--H); transform-origin: 0 0; }
+body.virt90 #cam { transform: rotate(-90deg) translateX(calc(-1 * var(--W))); }
+body.virt-90 #cam { transform: rotate(90deg) translateY(calc(-1 * var(--H))); }
+body.virt90 #toast { left: auto; right: 90px; bottom: 50%; transform: translateY(50%) rotate(90deg); transform-origin: 100% 50%; }
+body.virt-90 #toast { left: 90px; bottom: 50%; transform: translateY(50%) rotate(-90deg); transform-origin: 0 50%; }
+
+/* horizontal: poca altura → la tarjeta a la izquierda, la brújula abajo al centro, sin el aviso de suelo */
+body.virt90 #mirando,body.virt-90 #mirando { left: 10px; right: auto; width: min(42%, 340px); bottom: calc(8px + var(--sib)); min-height: 52px; }
+body.virt90 #compas,body.virt-90 #compas { left: 72%; bottom: calc(6px + var(--sib)); width: min(320px, 40%); height: 50px; }
+body.virt90 #compas-num,body.virt-90 #compas-num { left: 72%; bottom: calc(56px + var(--sib)); }
+body.virt90 #compas-num b,body.virt-90 #compas-num b { font-size: 16px; }
+body.virt90 #pisando,body.virt-90 #pisando { display: none; }
+body.calibrando.virt90 #compas,body.calibrando.virt-90 #compas { bottom: calc(6px + var(--sib)); }
+body.calibrando.virt90 #compas-num,body.calibrando.virt-90 #compas-num { left: 72%; bottom: calc(56px + var(--sib)); }
+body.virt90 #calib-panel,body.virt-90 #calib-panel { bottom: calc(66px + var(--sib)); }
+body.virt90 .calib-aviso,body.virt-90 .calib-aviso { top: 58px; right: 90px; font-size: 12px; padding: 6px 9px; }
+@media (orientation: landscape) and (max-height: 500px) {
+#mirando { left: 10px; right: auto; width: min(42%, 340px); bottom: calc(8px + var(--sib)); min-height: 52px; }
+#compas { left: 72%; bottom: calc(6px + var(--sib)); width: min(320px, 40%); height: 50px; }
+#compas-num { left: 72%; bottom: calc(56px + var(--sib)); }
+#compas-num b { font-size: 16px; }
+#pisando { display: none; }
+body.calibrando #compas { bottom: calc(6px + var(--sib)); }
+body.calibrando #compas-num { left: 72%; bottom: calc(56px + var(--sib)); }
+#calib-panel { bottom: calc(66px + var(--sib)); }
+.calib-aviso { top: 58px; right: 90px; font-size: 12px; padding: 6px 9px; }
+}
