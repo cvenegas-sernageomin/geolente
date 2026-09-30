@@ -21,9 +21,9 @@ const CFG = {
 };
 
 export const LUGARES = [
-  { n: 'Torres del Paine · Paine Grande', ico: '🏔️', d: 'Los Cuernos y el Paine Grande a pocos kilómetros, con más de 2.500 m de desnivel sobre el lago.', lat: -51.0545, lon: -73.0725, rumbo: 0 },
-  { n: 'Baños Morales · Cajón del Maipo', ico: '🌋', d: 'El volcán San José y las paredes del Morado se alzan a pocos kilómetros de un valle angosto.', lat: -33.7925, lon: -70.0803, rumbo: 0 },
-  { n: 'Parque Queulat · Aysén', ico: '🧊', d: 'Cumbres cortadas a pico y glaciares que cuelgan sobre el valle, a pocos kilómetros.', lat: -44.4000, lon: -72.3300, rumbo: 0 },
+  { n: 'Baños Morales · Cajón del Maipo', ico: '🌋', d: 'El volcán San José y el Morado a pocos kilómetros, con 13 unidades geológicas en 10 km a la redonda.', lat: -33.7925, lon: -70.0803, rumbo: 0 },
+  { n: 'Alto Valle del Elqui · Coquimbo', ico: '🏜️', d: 'Cordillera desértica cerca de los 30°S: 13 unidades geológicas distintas en un radio de 10 km.', lat: -30.0500, lon: -70.0500, rumbo: 0 },
+  { n: 'Cochamó · el Yosemite chileno', ico: '🧗', d: 'Murallas de granito y cumbres a pico sobre el valle, con rocas volcánicas y sedimentarias alrededor.', lat: -41.4000, lon: -72.1300, rumbo: 0 },
 ];
 
 // ------------------------------------------------------------------ utilidades
