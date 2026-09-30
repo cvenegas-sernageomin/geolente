@@ -1,5 +1,5 @@
 // GeoLente: caché propia. Comparte origen con otras PWAs en github.io, así que SOLO borra cachés "geolente-*".
-const VER = 'geolente-v10';
+const VER = 'geolente-v11';
 const CACHE_APP = VER, CACHE_GEO = 'geolente-geo', CACHE_DEM = 'geolente-dem';
 const APP = ['./', 'index.html', 'estilo.css', 'app.js', 'contenido.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png',
   'vendor/three/three.module.min.js', 'vendor/three/three.core.js', 'vendor/three/lines/Line2.js', 'vendor/three/lines/LineGeometry.js',

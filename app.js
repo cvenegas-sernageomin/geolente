@@ -841,11 +841,14 @@ function onOrientacion(ev, absoluto) {
   quatDispositivo(ev.alpha * D, ev.beta * D, ev.gamma * D, orient, _qa);
   let extra = 0;
   if (ev.webkitCompassHeading != null) { // iOS: alpha es relativo; se corrige con la brújula (solo con el teléfono vertical)
-    if (ev.beta > 40 && ev.beta < 140) {
+    const acc = ev.webkitCompassAccuracy; // grados de error; -1 = brújula sin calibrar
+    if (ev.beta > 40 && ev.beta < 140 && !(acc < 0) && !S.iosCongelado) {
       const off = envolver(ev.webkitCompassHeading - rumboDe(_qa));
-      S.iosOff = S.iosOff == null ? off : S.iosOff + envolver(off - S.iosOff) * 0.05;
+      S.iosN = (S.iosN || 0) + 1;
+      const k = S.iosOff == null ? 1 : S.iosN < 40 ? 0.25 : acc > 25 ? 0.015 : 0.05; // al inicio converge rápido; luego suave
+      S.iosOff = S.iosOff == null ? off : S.iosOff + envolver(off - S.iosOff) * k;
     }
-    extra = S.iosOff ?? 0; S.precision = ev.webkitCompassAccuracy; S.absoluto = true;
+    extra = S.iosOff ?? 0; S.precision = acc; S.absoluto = true;
   } else if (absoluto) S.absoluto = true;
   const yaw = -(extra + S.decl + S.yawUsuario) * D;
   _qy.setFromAxisAngle(yAx, yaw); _qp.setFromAxisAngle(xAx, S.pitchUsuario * D);
@@ -965,6 +968,7 @@ function bucle(t) {
     const nueva = seleccionarEtiquetas(t); posicionarEtiquetas(nueva); actualizarMira(t);
     const rumbo = (rumboDe(camera.quaternion) + 360) % 360;
     rosaCompas.setAttribute('transform', `rotate(${-rumbo.toFixed(1)} 160 170)`);
+    actualizarCompasNum(rumbo);
     $('#brujula').textContent = `${['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'][Math.round(rumbo / 45) % 8]} ${nf0.format(rumbo)}°`;
   }
 }
@@ -985,10 +989,61 @@ const rosaCompas = $('#compas-rosa');
 })();
 
 let calibrando = false;
+const PUNTOS = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
+function actualizarCompasNum(rumbo) {
+  const n = $('#compas-num'); if (ESC.modo !== 'ar') { n.hidden = true; return; }
+  n.hidden = false;
+  n.firstChild.textContent = `${nf0.format(rumbo)}° ${PUNTOS[Math.round(rumbo / 45) % 8]}`;
+  let aviso = '';
+  if (S.tiene && S.iosOff == null && S.precision != null) aviso = 'Levanta el teléfono a la vertical para fijar el norte';
+  else if (S.precision < 0) aviso = 'Brújula sin calibrar: dibuja un ∞ en el aire';
+  else if (S.precision > 25) aviso = `Brújula imprecisa (±${nf0.format(S.precision)}°): toca para calibrar`;
+  else if (S.tiene && !S.absoluto) aviso = 'Sin brújula absoluta: toca para calibrar';
+  if (n.lastChild.textContent !== aviso) n.lastChild.textContent = aviso;
+}
+// Calibración rápida: el usuario pone la mira sobre una cumbre que reconoce y la toca en la lista;
+// se corrige el rumbo (y la inclinación) para que el dibujo calce con ella.
+function cumbresCercanasAMira() {
+  if (!ESC.cumbres) return [];
+  const c0 = camera.position, f = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  const rumbo = Math.atan2(f.x, -f.z) * 180 / Math.PI;
+  const out = [];
+  ESC.cumbres.forEach((k, i) => {
+    const dx = k.pos.x - c0.x, dn = -(k.pos.z - c0.z), d = Math.hypot(dx, dn);
+    if (d < 1200 || !k.nombre) return;
+    const rb = Math.atan2(dx, dn) * 180 / Math.PI, dr = envolver(rb - rumbo);
+    if (Math.abs(dr) > 40) return;
+    const el = Math.atan2(k.pos.y - c0.y, d) * 180 / Math.PI;
+    out.push({ i, k, d, dr, el, dv: el - Math.asin(f.y) * 180 / Math.PI });
+  });
+  out.sort((a, b) => (Math.abs(a.dr) + Math.abs(a.dv) * 0.5) - (Math.abs(b.dr) + Math.abs(b.dv) * 0.5));
+  const res = [];
+  for (const o of out) { if (res.length >= 5) break; if (visible(o.k.pos)) res.push(o); }
+  return res;
+}
+let _ultLista = '';
+function refrescarListaCalibracion() {
+  if (!calibrando) return;
+  const l = cumbresCercanasAMira();
+  const clave = l.map(o => o.i).join(',');
+  if (clave === _ultLista) return; _ultLista = clave;
+  $('#calib-lista').innerHTML = l.length
+    ? l.map(o => `<button class="chip" data-i="${o.i}">${esc(o.k.nombre)}<small>${nf0.format(o.d / 1000)} km</small></button>`).join('')
+    : '<span class="vacio">No veo cumbres con nombre hacia donde apuntas. Gira un poco.</span>';
+}
+function calibrarConCumbre(i) {
+  const o = cumbresCercanasAMira().find(x => x.i === i); if (!o) return;
+  S.yawUsuario = envolver(S.yawUsuario + o.dr);
+  S.pitchUsuario = Math.max(-15, Math.min(15, S.pitchUsuario + o.dv));
+  S.iosCongelado = S.iosOff != null; // en iPhone, el giroscopio mantiene el ajuste sin que la brújula lo desarme
+  guardar('yaw', S.yawUsuario.toFixed(2)); guardar('pitch', S.pitchUsuario.toFixed(2));
+  alternarCalibrar(false);
+  toast(`🎯 Calibrado con ${o.k.nombre} (corrección de ${nf0.format(Math.abs(o.dr))}°). Si aún no calza, repite con otra cumbre.`, 5000);
+}
 function instalarGestos() {
   const el = $('#escena'); let arr = null, pinza = null;
   el.addEventListener('pointerdown', e => {
-    if (e.target.closest('.etq, button, #ficha, .panel, #mirando, #pisando')) return;
+    if (e.target.closest('.etq, button, #ficha, .panel, #mirando, #pisando, #compas, #calib-panel')) return;
     const conSensores = ESC.modo === 'ar' && S.tiene;
     arr = { x: e.clientX, y: e.clientY, yaw: conSensores ? S.yawUsuario : VISTA.yaw, pitch: conSensores ? S.pitchUsuario : VISTA.pitch };
     el.setPointerCapture(e.pointerId);
@@ -1025,7 +1080,9 @@ function alternarCalibrar(on = !calibrando) {
   if (grupoPerfil) grupoPerfil.visible = CFG.perfil || on;
   if (terrenoColor) terrenoColor.material.uniforms.opacidad.value = on ? Math.min(0.2, CFG.opacidad) : CFG.opacidad;
   $('#btn-calibrar').classList.toggle('activo', on);
-  if (on) toast('Arrastra hasta que las líneas blancas calcen con el perfil de los cerros. Pellizca para ajustar el tamaño.', 5500);
+  _ultLista = '';
+  clearInterval(alternarCalibrar.t);
+  if (on) { refrescarListaCalibracion(); alternarCalibrar.t = setInterval(refrescarListaCalibracion, 350); }
 }
 function mostrarAyuda() {
   $('#ficha-cuerpo').innerHTML = `<header class="fi-cab" style="--c:#7cc4ff"><span class="fi-ico">🧭</span><div><small>Cómo usar GeoLente</small><h2>Lee los cerros como un geólogo</h2></div></header>
@@ -1145,6 +1202,8 @@ function iniciarUI() {
   $('#btn-ayuda').onclick = mostrarAyuda;
   $('#btn-coleccion').onclick = abrirColeccion;
   $('#btn-calibrar').onclick = () => alternarCalibrar();
+  $('#compas').onclick = () => { if (ESC.modo === 'ar') alternarCalibrar(); };
+  $('#calib-lista').onclick = e => { const b = e.target.closest('[data-i]'); if (b) calibrarConCumbre(+b.dataset.i); };
   $('#btn-ajustes').onclick = () => $('#ajustes').classList.toggle('abierto');
   $('#ficha-cerrar').onclick = cerrarFicha;
   $('#ficha').addEventListener('click', e => { if (e.target.id === 'ficha') cerrarFicha(); });
@@ -1163,7 +1222,7 @@ function iniciarUI() {
   cC.onchange = () => { CFG.cumbres = cC.checked; guardar('cumbres', cC.checked ? '1' : '0'); };
   const sA = $('#s-alcance'); sA.value = CFG.alcance;
   sA.onchange = () => { CFG.alcance = +sA.value; guardar('alcance', sA.value); if (O) abrirEn(O.lat, O.lon, ESC.modo, VISTA.yaw); };
-  $('#btn-reset').onclick = () => { S.yawUsuario = 0; S.pitchUsuario = 0; CFG.fovLargo = 68; rFov.value = 68; guardar('yaw', 0); guardar('pitch', 0); guardar('fov', 68); ajustarTamano(); toast('Ajuste restablecido.'); };
+  $('#btn-reset').onclick = () => { S.yawUsuario = 0; S.pitchUsuario = 0; S.iosCongelado = false; CFG.fovLargo = 68; rFov.value = 68; guardar('yaw', 0); guardar('pitch', 0); guardar('fov', 68); ajustarTamano(); toast('Ajuste restablecido.'); };
   actualizarContador();
   instalarGestos();
   requestAnimationFrame(bucle);
