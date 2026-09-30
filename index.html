@@ -69,7 +69,7 @@
 
   <div id="ajustes" class="panel">
     <label>Transparencia del mapa <input id="r-opacidad" type="range" min="0.15" max="0.95" step="0.05"></label>
-    <label class="solo-ar">Tamaño del dibujo (campo visual) <input id="r-fov" type="range" min="40" max="90" step="0.5"></label>
+    <label class="solo-ar">Tamaño del dibujo (campo visual) <input id="r-fov" type="range" min="18" max="110" step="0.5"></label>
     <label>Alcance
       <select id="s-alcance"><option value="10000">10 km</option><option value="25000">25 km</option><option value="40000">40 km</option></select></label>
     <label class="fila"><input id="c-perfil" type="checkbox"> Perfil de los cerros (líneas blancas)</label>
@@ -79,8 +79,10 @@
     <button id="btn-reset" class="btn chico solo-ar">Restablecer ajuste</button>
   </div>
 
-  <div class="calib-aviso"><b>Calibración rápida</b><br>1 · Apunta la mira ⊕ a una cumbre que reconozcas<br>2 · Tócala en la lista de abajo<br><small>o arrastra hasta que las líneas blancas calcen · 🎯 para salir</small></div>
-  <div id="calib-panel"><div id="calib-lista"></div></div>
+  <div class="calib-aviso"><div class="paso1"><b>Paso 1 · Rumbo</b><br>Apunta la mira ⊕ a una cumbre que reconozcas y tócala en la lista de abajo<br><small>o arrastra hasta que las líneas blancas calcen · 🎯 para salir</small></div>
+    <div class="paso2"><b>Paso 2 · Altura del relieve</b><br><span id="calib-ref"></span>Arrastra ↕ (o usa − / +) hasta que la línea blanca calce con el borde real del cordón.</div></div>
+  <div id="calib-panel"><div id="calib-lista"></div>
+    <div id="calib-escala"><button class="chip" data-x="-1" aria-label="Relieve más bajo">−</button><b id="calib-x">×1</b><button class="chip" data-x="1" aria-label="Relieve más alto">+</button><button class="chip ok" id="calib-listo">Listo ✓</button></div></div>
   <div id="compas-num" hidden><b>—</b><small></small></div>
   <div id="compas" role="button" aria-label="Calibrar brújula"><svg viewBox="0 0 320 60"><g id="compas-rosa"></g><path class="c-aguja" d="M160 3 L167 15 L153 15Z"/></svg></div>
   <button id="pisando" hidden></button>

@@ -222,6 +222,16 @@ body.calibrando #compas { bottom: calc(98px + var(--sib)); }
 #calib-lista { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 2px; justify-content: center; }
 #calib-lista .chip { flex: none; background: #2f8cff; color: #fff; border: 2px solid #fff; border-radius: 999px; padding: 9px 14px; font-size: 14px; font-weight: 600; }
 #calib-lista .chip small { display: block; font-weight: 400; font-size: 11px; opacity: .9; }
+.calib-aviso .paso2, body.calib-escala .calib-aviso .paso1 { display: none; }
+body.calib-escala .calib-aviso .paso2 { display: block; }
+#calib-ref { display: block; font-size: 12px; opacity: .92; margin: 2px 0 3px; }
+#calib-escala { display: none; gap: 10px; align-items: center; justify-content: center; }
+body.calib-escala #calib-escala { display: flex; }
+body.calib-escala #calib-lista { display: none; }
+#calib-escala .chip { background: #2f8cff; color: #fff; border: 2px solid #fff; border-radius: 999px; min-width: 48px; padding: 9px 14px; font-size: 18px; font-weight: 700; }
+#calib-escala .chip.ok { font-size: 14px; background: #1f9d55; }
+#calib-x { color: #fff; font-size: 16px; background: rgba(0,0,0,.55); padding: 8px 12px; border-radius: 10px; min-width: 56px; text-align: center; }
+#calib-lista .chip.escala { background: rgba(0,0,0,.55); }
 #calib-lista .vacio { color: #fff; font-size: 13px; background: rgba(0,0,0,.55); padding: 8px 12px; border-radius: 10px; }
 
 /* ---------- buscador de localidades y lugares destacados */
@@ -239,3 +249,4 @@ body.calibrando #compas { bottom: calc(98px + var(--sib)); }
 .tarjetas-lugares .t-ico { font-size: 30px; }
 .tarjetas-lugares b { display: block; font-size: 16px; }
 .tarjetas-lugares small { display: block; margin-top: 2px; font-size: 12.5px; line-height: 1.35; color: rgba(255,255,255,.75); }
+body.calib-escala #compas, body.calib-escala #compas-num { display: none; }
