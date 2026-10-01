@@ -231,12 +231,11 @@ export function pintarMapa(M, A, aEN, maxPx) {
     ctx.restore();
   }
 
-  // dataciones (estrella) y fósiles (espiral)
+  // dataciones (cuadrito negro, como en la carta; la caja con la edad la pone la app) y fósiles (espiral)
   for (const [lon, lat] of M.pg) {
-    const [x, y] = px(lon, lat), R = 2.4 * k;
-    ctx.beginPath();
-    for (let i = 0; i < 10; i++) { const r = i % 2 ? R * 0.45 : R, a = -Math.PI / 2 + i * Math.PI / 5; i ? ctx.lineTo(x + r * Math.cos(a), y + r * Math.sin(a)) : ctx.moveTo(x + r * Math.cos(a), y + r * Math.sin(a)); }
-    ctx.closePath(); ctx.fillStyle = '#d4145a'; ctx.fill(); ctx.lineWidth = Math.max(0.6, 0.3 * k); ctx.strokeStyle = '#fff'; ctx.stroke();
+    const [x, y] = px(lon, lat), R = 1.3 * k;
+    ctx.fillStyle = '#fff'; ctx.fillRect(x - R - 0.6, y - R - 0.6, 2 * R + 1.2, 2 * R + 1.2);
+    ctx.fillStyle = '#000'; ctx.fillRect(x - R, y - R, 2 * R, 2 * R);
   }
   for (const [lon, lat] of M.pf) {
     const [x, y] = px(lon, lat);

@@ -280,7 +280,7 @@ def preparar(M, compartidas):
         for f in L(mid, M['fosil']):
             p = f['properties']; x, y = f['geometry']['coordinates'][:2]
             ed = ' – '.join(x for x in (dom(p.get('EDAD_MAX')) or dom(p.get('EPOCA_MAX')), dom(p.get('EDAD_MIN')) or dom(p.get('EPOCA_MIN'))) if x)
-            fosiles.append([round(x, 6), round(y, 6), p.get('SUBTIPO_DESC') or 'Fósil', p.get('LOCALIDAD') or '', ed, p.get('REFERENCIA') or ''])
+            fosiles.append([round(x, 6), round(y, 6), p.get('SUBTIPO_DESC') or 'Fósil', p.get('LOCALIDAD') or '', ed, p.get('REFERENCIA') or '', str(p.get('REF') or '')])
     # medidas estructurales (solo las que el mapa muestra: campo Colocar)
     medidas = []
     for f in L(mid, 'GB_MEDIDA_ESTRUCTURAL'):
@@ -300,10 +300,16 @@ def preparar(M, compartidas):
         if not et and p.get('EDAD'):
             et = f"{p['EDAD']:g} ± {p.get('ERROR') or 0:g} {'Ma' if 'Ma' in dom(p.get('UNIDAD_MEDIDA')) or (p.get('UNIDAD_MEDIDA') or '').startswith('Ma') else ''}".strip()
         if not et or et.startswith('00'): continue
+        # Cipreses: error en ka con la edad en Ma ("0,076 ± 58,000 Ma") → se muestra en ka
+        mk = re.match(r'^(\d+),(\d+)\s*±\s*([\d,]+)\s*Ma$', et.replace(' ', ''))
+        if mk and float(mk.group(1) + '.' + mk.group(2)) < 1 and float(mk.group(3).replace(',', '.')) >= 1:
+            et = f"{round(float(mk.group(1) + '.' + mk.group(2)) * 1000):d}±{round(float(mk.group(3).replace(',', '.'))):d} ka"
+        # número de la referencia (el mapa lo pone en una cajita a la derecha de la edad)
+        rn = p.get('REF') or (re.search(r'(Ma|ka|AP|BP)\s+(\S+)$', p.get('ETIQUETA') or '') or [None, None, ''])[2]
         met = (p.get('SUBTIPO_DESC') or p.get('METODO') or '').strip()
         mm = re.search(r'\(([^)]+)\)', met); met_c = mm.group(1) if mm else (p.get('METODO') or met)
         geocron.append([round(x, 6), round(y, 6), et.replace('±', ' ± '), met_c, dom(p.get('MATERIAL_DAT')), p.get('LITOLOGIA') or '',
-                        p.get('UNIDAD_GEOLOGICA') or '', p.get('SIGLA_MUESTRA') or '', p.get('REFERENCIA') or ''])
+                        p.get('UNIDAD_GEOLOGICA') or '', p.get('SIGLA_MUESTRA') or '', p.get('REFERENCIA') or '', str(rn or '')])
     # anotaciones dibujadas sobre el mapa: códigos de unidad y manteos (texto, posición, ángulo, alto en m)
     def anotaciones(capa):
         out = []
@@ -314,6 +320,10 @@ def preparar(M, compartidas):
             c = centro(f)
             out.append([c[0], c[1], t, round(p.get('Angle') or 0, 1), round((p.get('FontSize') or 6) * PT, 1)])
         return out
+    # fósiles sin número de referencia: el mismo de las dataciones con igual referencia
+    nref = {g[8]: g[9] for g in geocron if g[8] and g[9]}
+    for f in fosiles:
+        if not f[6]: f[6] = nref.get(f[5], '1' if f[5] == 'Este trabajo' else '')
     tu = anotaciones(M['anno_u']) if M.get('anno_u') else []
     if not tu:  # sin anotación: el código en el punto interior de cada polígono grande
         tu = [[pp['l'][0], pp['l'][1], pp['u'], 0, 6 * PT] for pp in polys[:400]]

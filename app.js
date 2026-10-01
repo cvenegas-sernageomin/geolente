@@ -276,8 +276,12 @@ async function cargarDetalle(A) {
     }
     for (const p of M.polys) ESC.polysDet.push({ ...p, cod: `${M.id}:${p.cod}`, M });
     M.lf.forEach(l => ESC.fallasDet.push({ ...l, M }));
-    M.pg.forEach(([lon, lat, txt, met, mat, lit, uni, sigla, ref]) => ESC.pins.push({ tipo: 'dat', lon, lat, txt, met, mat, lit, uni, sigla, ref, M }));
-    M.pf.forEach(([lon, lat, tipo, loc, edad, ref]) => ESC.pins.push({ tipo: 'fos', lon, lat, txt: tipo, loc, edad, ref, M }));
+    M.pg.forEach(([lon, lat, txt, met, mat, lit, uni, sigla, ref, rn]) => ESC.pins.push({ tipo: 'dat', lon, lat, txt, met, mat, lit, uni, sigla, ref, rn, M }));
+    M.pf.forEach(([lon, lat, tipo, loc, edad, ref, rn]) => {
+      // la misma localidad fosilífera repetida a pocos metros se muestra una vez
+      if (ESC.pins.some(q => q.tipo === 'fos' && q.edad === edad && Math.abs(q.lon - lon) < 0.003 && Math.abs(q.lat - lat) < 0.003)) return;
+      ESC.pins.push({ tipo: 'fos', lon, lat, txt: tipo, loc, edad, ref, rn, M });
+    });
   }
 }
 // ¿hay mapas detallados en la zona? (se calcula con el índice, aunque estén apagados)
@@ -748,10 +752,19 @@ function htmlEtiqueta(cod) {
     <small>${u.edadGrande ? esc(u.edadGrande) : u.ma ? esc(fmtRango(u, true)) + (u.edad ? ' · ' + esc(edadCorta(u.edad)) : '') : esc(c.lema)}</small></span>${nuevo ? '<i class="etq-nuevo">¡nuevo!</i>' : ''}</div>
     <div class="etq-palo"></div><div class="etq-punto"></div>`;
 }
+// Dataciones y fósiles con el estilo de la carta: caja blanca de borde negro, símbolo del método, edad y n.º de referencia
+const SIMB_MET = {
+  'U-Pb': '<path d="M7 1.6 13 12.4H1Z"/>',
+  '40Ar-39Ar': '<path d="M7 1 13 7 7 13 1 7Z"/><circle cx="7" cy="7" r="1.5" fill="currentColor"/>',
+  'K-Ar': '<rect x="1.5" y="1.5" width="11" height="11"/>',
+  '14C': '<path d="M1 1.6H13L7 12.4Z M7 1.6V12.4"/>',
+  fosil: '<path d="M7.3 7.2a1.1 1.1 0 1 1-1.2-1.4 2.3 2.3 0 1 1-1.9 3.2 3.6 3.6 0 1 1 6.6-3.1 4.9 4.9 0 0 1-1 5.6"/>',
+};
+const simbMet = k => `<svg class="pin-simb" viewBox="0 0 14 14" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.3">${SIMB_MET[k] || SIMB_MET['U-Pb']}</g></svg>`;
+const txtEdad = t => t.replace(/\s*±\s*/g, '±').replace(/\s+/g, ' ').replace(/\b(BP|AP)$/, 'años AP');
 function htmlPin(p) {
-  return p.tipo === 'dat'
-    ? `<div class="etq-caja"><span class="etq-ico">⏳</span><span class="etq-txt"><b>${esc(p.txt)}</b><small>Datación ${esc(p.met || '')}${p.mat ? ' · ' + esc(p.mat.toLowerCase()) : ''}</small></span></div><div class="etq-palo"></div><div class="etq-punto"></div>`
-    : `<div class="etq-caja"><span class="etq-ico">🐚</span><span class="etq-txt"><b>Fósil: ${esc(p.txt.toLowerCase())}</b><small>${esc(p.edad || p.loc || '')}</small></span></div><div class="etq-palo"></div><div class="etq-punto"></div>`;
+  const txt = p.tipo === 'dat' ? txtEdad(p.txt) : (p.edad || p.txt);
+  return `<div class="etq-caja">${simbMet(p.tipo === 'dat' ? p.met : 'fosil')}<span class="pin-txt">${esc(txt)}</span>${p.rn ? `<span class="pin-ref">${esc(p.rn)}</span>` : ''}</div><div class="etq-palo"></div><div class="etq-punto"></div>`;
 }
 function htmlEtiquetaFalla(fi) {
   const d = fallaDet(fi);
@@ -777,7 +790,7 @@ function crearEtiqueta(clave, html, color, alTocar) {
 }
 
 let ultimaSeleccion = 0;
-const MAX_CAJAS = 2;
+const MAX_CAJAS = 2, PIN_OCULTO = new Set();
 function seleccionarEtiquetas(t) {
   if (t - ultimaSeleccion < 280) return false; ultimaSeleccion = t;
   const quiero = new Map();
@@ -841,16 +854,18 @@ function seleccionarEtiquetas(t) {
     if (CFG.pins) ESC.pins.forEach((p, i) => {
       if (!p.pos) return;
       const d = Math.hypot(p.pos.x - c0.x, p.pos.z - c0.z);
-      if (d > 8000 || !enPantalla(p.pos, sp5) || sp5.y < 70 || sp5.y > VH() - 150) return;
+      if (d > 10000 || !enPantalla(p.pos, sp5) || sp5.y < 70 || sp5.y > VH() - (ESC.modo === 'ar' ? 280 : 240)) return; // no bajo los diales
       cerca.push({ i, d });
     });
-    cerca.sort((a, b) => a.d - b.d);
-    let puestos = 0;
-    for (const { i } of cerca) { if (puestos >= 4) break; if (!visible(ESC.pins[i].pos)) continue; quiero.set('⌚' + i, ESC.pins[i].pos); puestos++; }
+    // primero las que se ven; si faltan, también las que quedan tras un cerro (con la línea punteada), como en la carta
+    cerca.forEach(c => { c.vis = visible(ESC.pins[c.i].pos); });
+    cerca.sort((a, b) => (b.vis - a.vis) || a.d - b.d);
+    PIN_OCULTO.clear();
+    for (const { i, vis } of cerca.slice(0, 5)) { quiero.set('⌚' + i, ESC.pins[i].pos); if (!vis) PIN_OCULTO.add('⌚' + i); }
     // a lo más MAX_CAJAS etiquetas con caja (unidades, fallas, dataciones): las más cercanas a la mira, para que se vea el mapa.
     // Las que ya están puestas tienen ventaja, así no saltan de un lado a otro al mover un poco el teléfono.
     const spc = { x: 0, y: 0 }, cx = VW() / 2, cy = VH() / 2;
-    const cajas = [...quiero.entries()].filter(([k]) => !k.startsWith('▲')).map(([k, pos]) => {
+    const cajas = [...quiero.entries()].filter(([k]) => !k.startsWith('▲') && !k.startsWith('⌚')).map(([k, pos]) => {
       enPantalla(pos, spc);
       return { k, d: Math.hypot(spc.x - cx, spc.y - cy) * (ETQ.has(k) ? 0.6 : 1) };
     }).sort((a, b) => a.d - b.d);
@@ -867,6 +882,7 @@ function seleccionarEtiquetas(t) {
       ETQ.set(k, e);
     }
     e.pos = pos;
+    if (k.startsWith('⌚')) e.el.classList.toggle('etq-oculto', PIN_OCULTO.has(k));
   }
   return true;
 }
@@ -879,7 +895,7 @@ function posicionarEtiquetas(medir) {
     if (!e.pos || !enPantalla(e.pos, sp)) { e.el.style.opacity = 0; continue; }
     if (!e.w || medir) { const c = e.el.querySelector('.etq-caja'); e.w = c.offsetWidth; e.h = c.offsetHeight; }
     const esCumbre = k.startsWith('▲');
-    let alto = esCumbre ? 16 : 46, ok = false;
+    let alto = esCumbre ? 16 : k.startsWith('⌚') ? 26 : 46, ok = false;
     // desplazamiento horizontal para que la caja no se salga de la pantalla (el palito sigue en el punto)
     const dx = sp.x - e.w / 2 < 8 ? 8 + e.w / 2 - sp.x : sp.x + e.w / 2 > VW() - 8 ? VW() - 8 - e.w / 2 - sp.x : 0;
     for (let intento = 0; intento < (esCumbre ? 1 : 4) && !ok; intento++, alto += e.h + 8) {
@@ -1604,6 +1620,41 @@ function dibujarPlano() {
     ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x + r, y + r * 0.8); ctx.lineTo(x - r, y + r * 0.8); ctx.closePath();
     ctx.fillStyle = k.volcan ? '#d4145a' : '#3a3a3a'; ctx.fill(); ctx.lineWidth = 1.5 * f; ctx.strokeStyle = '#fff'; ctx.stroke();
     ctx.lineWidth = 3 * f; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.strokeText(k.nombre, x, y - r - 4 * f); ctx.fillStyle = '#111'; ctx.fillText(k.nombre, x, y - r - 4 * f);
+  }
+  // dataciones y fósiles como en la carta (al acercar, para no tapar el plano): cuadrito negro, línea guía y caja
+  if (CFG.pins && PL.s >= 2) {
+    const cajas = [];
+    ctx.font = `600 ${11 * f}px Arial, Helvetica, sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    for (const p of ESC.pins) {
+      if (!p.pos) continue;
+      const [x, y] = plAPx(p.pos.x, -p.pos.z, W);
+      if (x < 0 || y < 0 || x > W || y > W) continue;
+      const txt = p.tipo === 'dat' ? txtEdad(p.txt) : (p.edad || p.txt), h = 17 * f, s = 11 * f;
+      const wt = ctx.measureText(txt).width, wr = p.rn ? ctx.measureText(p.rn).width + 8 * f : 0, w = 4 * f + s + 4 * f + wt + 4 * f + wr;
+      // la caja arriba a la derecha del punto; si choca, se prueba a la izquierda y abajo
+      let c = null;
+      for (const [ox, oy] of [[14, -30], [-14, -30], [14, 14], [-14, 14]]) {
+        const bx = ox > 0 ? x + ox * f : x + ox * f - w, by = oy < 0 ? y + oy * f : y + oy * f;
+        if (!cajas.some(q => bx < q[0] + q[2] + 3 && bx + w + 3 > q[0] && by < q[1] + q[3] + 3 && by + h + 3 > q[1])) { c = [bx, by, w, h]; break; }
+      }
+      if (!c) continue;
+      cajas.push(c);
+      const [bx, by] = c, ax = bx + (bx > x ? 0 : w), ay = by + (by > y ? 0 : h);
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 1 * f;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ax, ay); ctx.stroke();
+      ctx.fillStyle = '#111'; ctx.fillRect(x - 2.5 * f, y - 2.5 * f, 5 * f, 5 * f);
+      ctx.fillStyle = '#fff'; ctx.fillRect(bx, by, w, h); ctx.strokeRect(bx, by, w, h);
+      if (wr) { ctx.beginPath(); ctx.moveTo(bx + w - wr, by); ctx.lineTo(bx + w - wr, by + h); ctx.stroke(); }
+      ctx.save(); ctx.translate(bx + 4 * f, by + (h - s) / 2); ctx.scale(s / 14, s / 14); ctx.lineWidth = 1.3; ctx.fillStyle = "#111";
+      const d = SIMB_MET[p.tipo === 'dat' ? p.met : 'fosil'] || SIMB_MET['U-Pb'];
+      for (const m of d.matchAll(/d="([^"]+)"/g)) ctx.stroke(new Path2D(m[1]));
+      if (/<rect/.test(d)) ctx.strokeRect(1.5, 1.5, 11, 11);
+      if (/<circle/.test(d)) { ctx.beginPath(); ctx.arc(7, 7, 1.5, 0, 2 * Math.PI); ctx.fill(); }
+      ctx.restore();
+      ctx.fillStyle = '#111'; ctx.fillText(txt, bx + 8 * f + s, by + h / 2 + 0.5 * f);
+      if (wr) ctx.fillText(p.rn, bx + w - wr + 4 * f, by + h / 2 + 0.5 * f);
+    }
+    ctx.textBaseline = 'alphabetic';
   }
   // escala gráfica
   const mpp = 2 * A / PL.s / W, objetivo = 110 * f * mpp, paso = [100, 200, 500, 1000, 2000, 5000, 10000].find(v => v >= objetivo * 0.6) || 10000, Lp = paso / mpp;
