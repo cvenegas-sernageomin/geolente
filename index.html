@@ -109,9 +109,10 @@
 
 <div id="plano" hidden role="dialog" aria-label="Plano para ubicarte">
   <div class="plano-caja">
-    <header><b>Elige dónde pararte</b><small>Toca un punto del mapa · arrastra para elegir hacia dónde mirar</small><button id="plano-cerrar" aria-label="Cerrar">✕</button></header>
-    <canvas id="plano-cv"></canvas>
-    <footer id="plano-pie"></footer>
+    <header><b>Elige dónde pararte</b><small>Toca para marcar el punto · arrastra el punto azul para elegir hacia dónde mirar · pellizca o usa + − para acercar</small><button id="plano-cerrar" aria-label="Cerrar">✕</button></header>
+    <div class="plano-lienzo"><canvas id="plano-cv"></canvas>
+      <div class="plano-zoom"><button id="plano-mas" aria-label="Acercar">+</button><button id="plano-menos" aria-label="Alejar">−</button></div></div>
+    <footer id="plano-pie"><span id="plano-info"></span><button id="plano-ir">Ir aquí ✓</button></footer>
   </div>
 </div>
 

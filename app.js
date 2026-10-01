@@ -932,21 +932,6 @@ function actualizarMira(t) {
 }
 
 // ------------------------------------------------------------------ fichas
-function calendario(ma) {
-  const frac = 1 - ma / 4567;
-  const seg = ma / 4567 * 365 * 86400; // segundos antes de la medianoche del 31 de diciembre
-  if (seg < 86400) {
-    const t = new Date(Date.UTC(2025, 11, 31, 24, 0, 0) - seg * 1000);
-    return `el 31 de diciembre a las ${String(t.getUTCHours()).padStart(2, '0')}:${String(t.getUTCMinutes()).padStart(2, '0')}${seg < 60 ? ':' + String(t.getUTCSeconds()).padStart(2, '0') : ''}`;
-  }
-  const dia = new Date(Date.UTC(2025, 0, 1) + frac * 365 * 86400000);
-  return `el ${dia.getUTCDate()} de ${['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][dia.getUTCMonth()]}`;
-}
-function barraAnio(ma) {
-  const p = (1 - ma / 4567) * 100;
-  const meses = 'EFMAMJJASOND'.split('').map(m => `<span>${m}</span>`).join('');
-  return `<div class="anio"><div class="anio-meses">${meses}</div><div class="anio-marca" style="left:${p}%"></div></div>`;
-}
 function abrirFicha(cod) {
   const u = UNI[cod]; if (!u) return;
   const c = CATEGORIAS[u.cat] || CATEGORIAS.sininfo;
@@ -961,7 +946,6 @@ function abrirFicha(cod) {
     <header class="fi-cab" style="--c:${u.color}"><span class="fi-ico">${c.ico}</span><div><small>${esc(u.cat === 'sininfo' && det ? 'Unidad geológica' : c.nombre)}${c.lema ? ' · ' + esc(c.lema) : ''}</small><h2>${esc(u.titulo)}</h2></div></header>
     ${u.ma ? `<section><h3>⏳ ¿Qué edad tiene?</h3><p class="grande">${esc(u.edadGrande || fmtRango(u))}</p>
       <p>${esc(edadTxt)} · era ${esc(era(media))}</p>${u.aprox ? '<p class="nota">Edad aproximada, deducida del código de la unidad: esta hoja del mapa todavía no trae su edad.</p>' : ''}${gc}
-      <p>Si toda la historia de la Tierra (4.567 millones de años) fuera <b>un solo año</b>, esta roca se habría formado <b>${calendario(media)}</b>.</p>${barraAnio(media)}
       <p class="contexto">🌍 ${esc(contextoEdad(media))}</p></section>` : ''}
     ${que ? `<section><h3>🔎 ¿Qué es?</h3><p>${esc(que)}</p>${u.facies ? `<p class="nota">${esc(u.facies)}</p>` : ''}${joven}</section>` : ''}
     ${ver ? `<section><h3>👀 ¿Cómo reconocerla?</h3><p>${esc(ver)}</p></section>` : ''}
@@ -1566,37 +1550,60 @@ function iniciarBuscador() {
 
 // ------------------------------------------------------------------ plano 2D: elegir dónde pararse con el dedo (modo explorar)
 // Muestra el cuadrado ±A visto desde arriba: el mismo mapa geológico de la textura (y los 1:50.000), con sombreado del relieve.
-// Tocar = pararse ahí; arrastrar = además mirar hacia donde se suelta el dedo.
-let sombraPlano = null; // relieve sombreado del lugar cargado (se calcula una vez por lugar)
-const PL = { e: 0, n: 0, yaw: 0, arrastrando: false, x0: 0, y0: 0 };
-function relieveSombreado(A) {
-  const N = 220, cv = document.createElement('canvas'); cv.width = cv.height = N;
-  const ctx = cv.getContext('2d'), img = ctx.createImageData(N, N), h = new Float32Array(N * N), paso = 2 * A / N;
-  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) h[j * N + i] = hLocal(-A + (i + 0.5) * paso, A - (j + 0.5) * paso);
+// Tocar = marcar el punto · arrastrar el punto azul = hacia dónde mirar · arrastrar el mapa = moverlo · pellizcar, rueda o +/− = zoom.
+// "Ir aquí" lleva la vista 3D al punto marcado.
+const PL = { e: 0, n: 0, yaw: 0, s: 1, ce: 0, cn: 0, sombra: null, sombraV: null };
+let sombraPlano = null; // relieve sombreado de todo el cuadrado (se calcula una vez por lugar)
+// relieve sombreado de una ventana [e0, e1] × [n0, n1] (luz del noroeste, como los mapas impresos)
+function relieveSombreado(e0, e1, n0, n1, N = 220) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = N;
+  const ctx = cv.getContext('2d'), img = ctx.createImageData(N, N), h = new Float32Array(N * N), pe = (e1 - e0) / N, pn = (n1 - n0) / N;
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) h[j * N + i] = hLocal(e0 + (i + 0.5) * pe, n1 - (j + 0.5) * pn);
   for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
-    const k = j * N + i, dx = (h[j * N + Math.min(N - 1, i + 1)] - h[j * N + Math.max(0, i - 1)]) / (2 * paso), dy = (h[Math.max(0, j - 1) * N + i] - h[Math.min(N - 1, j + 1) * N + i]) / (2 * paso);
-    // luz del noroeste, como los mapas impresos
-    const s = Math.max(0, Math.min(1, 0.55 + (-dx * 0.7 + dy * 0.7) * 1.4 / Math.sqrt(1 + dx * dx + dy * dy)));
-    const v = Math.round(255 * s); img.data[k * 4] = img.data[k * 4 + 1] = img.data[k * 4 + 2] = v; img.data[k * 4 + 3] = 255;
+    const k = j * N + i, dx = (h[j * N + Math.min(N - 1, i + 1)] - h[j * N + Math.max(0, i - 1)]) / (2 * pe), dy = (h[Math.max(0, j - 1) * N + i] - h[Math.min(N - 1, j + 1) * N + i]) / (2 * pn);
+    const v = Math.round(255 * Math.max(0, Math.min(1, 0.55 + (-dx * 0.7 + dy * 0.7) * 1.4 / Math.sqrt(1 + dx * dx + dy * dy))));
+    img.data[k * 4] = img.data[k * 4 + 1] = img.data[k * 4 + 2] = v; img.data[k * 4 + 3] = 255;
   }
   ctx.putImageData(img, 0, 0);
   return cv;
 }
+// ventana visible en metros y conversión metros ↔ píxeles del canvas
+function ventanaPlano() { const A = CFG.alcance, m = A / PL.s; return [PL.ce - m, PL.ce + m, PL.cn - m, PL.cn + m]; }
+function plAPx(e, n, W) { const A = CFG.alcance; return [((e - PL.ce) * PL.s / (2 * A) + 0.5) * W, ((PL.cn - n) * PL.s / (2 * A) + 0.5) * W]; }
+function plDePx(x, y, W) { const A = CFG.alcance; return [PL.ce + (x / W - 0.5) * 2 * A / PL.s, PL.cn - (y / W - 0.5) * 2 * A / PL.s]; }
+function limitarVista() {
+  const A = CFG.alcance; PL.s = Math.min(16, Math.max(1, PL.s));
+  const m = A - A / PL.s; PL.ce = Math.min(m, Math.max(-m, PL.ce)); PL.cn = Math.min(m, Math.max(-m, PL.cn));
+}
+let tSombra = 0;
+function pedirSombra() { // al quedarse quieto, el relieve se vuelve a sombrear solo para lo que se ve (queda nítido con zoom)
+  clearTimeout(tSombra);
+  tSombra = setTimeout(() => {
+    if ($('#plano').hidden || PL.s < 1.5) { PL.sombra = null; dibujarPlano(); return; }
+    PL.sombraV = ventanaPlano(); PL.sombra = relieveSombreado(...PL.sombraV, 260); dibujarPlano();
+  }, 220);
+}
 function dibujarPlano() {
   const cv = $('#plano-cv'), A = CFG.alcance, W = cv.width, ctx = cv.getContext('2d');
-  const aPx = (e, n) => [(e + A) / (2 * A) * W, (A - n) / (2 * A) * W];
-  ctx.clearRect(0, 0, W, W);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#8a8478'; ctx.fillRect(0, 0, W, W);
+  // mapa: se dibuja en coordenadas del cuadrado completo con la transformación de la vista
+  ctx.save();
+  ctx.translate(W / 2, W / 2); ctx.scale(PL.s, PL.s); ctx.translate(-(PL.ce + A) / (2 * A) * W, -(A - PL.cn) / (2 * A) * W);
+  ctx.imageSmoothingEnabled = true;
   if (texMapa?.image) ctx.drawImage(texMapa.image, 0, 0, W, W);
   for (const d of texDet) { const [u0, v0, u1, v1] = d.uv; ctx.drawImage(d.t.image, u0 * W, (1 - v1) * W, (u1 - u0) * W, (v1 - v0) * W); }
-  if (sombraPlano) { ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.6; ctx.imageSmoothingEnabled = true; ctx.drawImage(sombraPlano, 0, 0, W, W); ctx.restore(); }
-  // volcanes y cumbres más altas
+  ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.6;
+  const so = PL.sombra && PL.sombraV ? [PL.sombra, PL.sombraV] : sombraPlano ? [sombraPlano, [-A, A, -A, A]] : null;
+  if (so) { const [img, [e0, e1, n0, n1]] = so; ctx.drawImage(img, (e0 + A) / (2 * A) * W, (A - n1) / (2 * A) * W, (e1 - e0) / (2 * A) * W, (n1 - n0) / (2 * A) * W); }
+  ctx.restore();
+  // volcanes y cumbres: una por nombre (OSM y GeoNames repiten algunas), separadas para que los nombres no se monten
   const f = W / 560;
   ctx.font = `600 ${12 * f}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.lineJoin = 'round';
-  // una por nombre (OSM y GeoNames repiten algunas) y separadas en el plano para que los nombres no se monten
   const puestas = [], nombres = new Set();
-  for (const k of (ESC.cumbres || []).filter(k => k.nombre && Math.abs(k.pos.x) < A && Math.abs(k.pos.z) < A).sort((a, b) => (b.volcan - a.volcan) || (b.ele - a.ele))) {
-    if (puestas.length >= 12 || nombres.has(k.nombre)) continue;
-    const [x, y] = aPx(k.pos.x, -k.pos.z);
+  for (const k of (ESC.cumbres || []).filter(k => k.nombre).sort((a, b) => (b.volcan - a.volcan) || (b.ele - a.ele))) {
+    if (puestas.length >= 14 || nombres.has(k.nombre)) continue;
+    const [x, y] = plAPx(k.pos.x, -k.pos.z, W);
+    if (x < 0 || y < 0 || x > W || y > W) continue;
     if (puestas.some(([a, b]) => Math.abs(a - x) < 90 * f && Math.abs(b - y) < 22 * f)) continue;
     puestas.push([x, y]); nombres.add(k.nombre);
     const r = (k.volcan ? 6 : 4.5) * f;
@@ -1604,25 +1611,31 @@ function dibujarPlano() {
     ctx.fillStyle = k.volcan ? '#d4145a' : '#3a3a3a'; ctx.fill(); ctx.lineWidth = 1.5 * f; ctx.strokeStyle = '#fff'; ctx.stroke();
     ctx.lineWidth = 3 * f; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.strokeText(k.nombre, x, y - r - 4 * f); ctx.fillStyle = '#111'; ctx.fillText(k.nombre, x, y - r - 4 * f);
   }
-  // posición y hacia dónde se mira (cono del campo visual)
-  const [x, y] = aPx(PL.e, PL.n), a = PL.yaw * Math.PI / 180, fov = (camera?.fov || 60) * (camera?.aspect || 1) * Math.PI / 180 / 2, L = 70 * f;
-  ctx.beginPath(); ctx.moveTo(x, y);
-  ctx.arc(x, y, L, a - Math.PI / 2 - fov, a - Math.PI / 2 + fov); ctx.closePath();
+  // escala gráfica
+  const mpp = 2 * A / PL.s / W, objetivo = 110 * f * mpp, paso = [100, 200, 500, 1000, 2000, 5000, 10000].find(v => v >= objetivo * 0.6) || 10000, Lp = paso / mpp;
+  ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillRect(10 * f, W - 30 * f, Lp + 12 * f, 22 * f);
+  ctx.fillStyle = '#111'; ctx.fillRect(16 * f, W - 14 * f, Lp, 3 * f); ctx.textAlign = 'left'; ctx.font = `600 ${10 * f}px system-ui, sans-serif`;
+  ctx.fillText(paso >= 1000 ? `${paso / 1000} km` : `${paso} m`, 16 * f, W - 18 * f);
+  // punto elegido y hacia dónde se mira (cono del campo visual)
+  const [x, y] = plAPx(PL.e, PL.n, W), a = PL.yaw * Math.PI / 180, fov = (camera?.fov || 60) * (camera?.aspect || 1) * Math.PI / 180 / 2, L = 70 * f;
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, L, a - Math.PI / 2 - fov, a - Math.PI / 2 + fov); ctx.closePath();
   ctx.fillStyle = 'rgba(47,140,255,.28)'; ctx.fill(); ctx.strokeStyle = '#2f8cff'; ctx.lineWidth = 2 * f; ctx.stroke();
-  ctx.beginPath(); ctx.arc(x, y, 8 * f, 0, 2 * Math.PI); ctx.fillStyle = '#2f8cff'; ctx.fill(); ctx.lineWidth = 3 * f; ctx.strokeStyle = '#fff'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(x, y, 9 * f, 0, 2 * Math.PI); ctx.fillStyle = '#2f8cff'; ctx.fill(); ctx.lineWidth = 3 * f; ctx.strokeStyle = '#fff'; ctx.stroke();
 }
-function infoPlano(e, n) {
-  const [lon, lat] = aLL(e, n), cod = unidadEn(lon, lat), u = cod && UNI[cod];
-  const c = u && (CATEGORIAS[u.cat] || CATEGORIAS.sininfo);
-  $('#plano-pie').innerHTML = `${nf0.format(hLocal(e, n))} m de altura${u ? ` · ${c.ico} <b>${esc(u.titulo)}</b>` : ''} · rumbo ${nf0.format((PL.yaw + 360) % 360)}°`;
+function infoPlano() {
+  const [lon, lat] = aLL(PL.e, PL.n), cod = unidadEn(lon, lat), u = cod && UNI[cod];
+  const c = u && (CATEGORIAS[u.cat] || CATEGORIAS.sininfo), r = ((PL.yaw % 360) + 360) % 360;
+  $('#plano-info').innerHTML = `${nf0.format(hLocal(PL.e, PL.n))} m${u ? ` · ${c.ico} <b>${esc(u.titulo)}</b>` : ''} · mirando al ${PUNTOS[Math.round(r / 45) % 8]} (${nf0.format(r)}°)`;
 }
 function abrirPlano() {
   if (!ESC.listo || ESC.modo === 'ar') return;
-  if (!sombraPlano) sombraPlano = relieveSombreado(CFG.alcance);
+  if (!sombraPlano) sombraPlano = relieveSombreado(-CFG.alcance, CFG.alcance, -CFG.alcance, CFG.alcance);
   PL.e = camera.position.x; PL.n = -camera.position.z; PL.yaw = VISTA.yaw;
+  // se abre algo acercado y centrado en donde uno está
+  PL.s = 2.5; PL.ce = PL.e; PL.cn = PL.n; limitarVista(); PL.sombra = null;
   const cv = $('#plano-cv'); $('#plano').hidden = false;
   cv.width = cv.height = Math.min(1100, Math.round(cv.clientWidth * Math.min(devicePixelRatio, 2)));
-  dibujarPlano(); infoPlano(PL.e, PL.n);
+  dibujarPlano(); infoPlano(); pedirSombra();
 }
 function irA(e, n, yaw) {
   $('#plano').hidden = true;
@@ -1633,20 +1646,51 @@ function irA(e, n, yaw) {
   calcularPerfil(generacion); actualizarPisando(); ultimaSeleccion = 0;
   $('#lugar').textContent = 'Punto elegido en el plano';
 }
+function zoomPlano(factor, x, y) { // zoom manteniendo fijo el punto (x, y) del canvas
+  const W = $('#plano-cv').width, [e, n] = plDePx(x, y, W);
+  PL.s *= factor; limitarVista();
+  const [e2, n2] = plDePx(x, y, W); PL.ce += e - e2; PL.cn += n - n2; limitarVista();
+  dibujarPlano(); pedirSombra();
+}
 function instalarPlano() {
-  const cv = $('#plano-cv'), A = () => CFG.alcance;
-  const aEN2 = ev => { const r = cv.getBoundingClientRect(); return [((ev.clientX - r.left) / r.width * 2 - 1) * A(), (1 - (ev.clientY - r.top) / r.height * 2) * A()]; };
+  const cv = $('#plano-cv'), dedos = new Map();
+  const local = ev => { const r = cv.getBoundingClientRect(); return [(ev.clientX - r.left) / r.width * cv.width, (ev.clientY - r.top) / r.height * cv.height]; };
+  let gesto = null; // tocar | mover (el mapa) | rumbo (arrastrando el punto azul) | pellizco
   cv.addEventListener('pointerdown', ev => {
-    cv.setPointerCapture(ev.pointerId); PL.arrastrando = true;
-    [PL.e, PL.n] = aEN2(ev); PL.x0 = ev.clientX; PL.y0 = ev.clientY;
-    dibujarPlano(); infoPlano(PL.e, PL.n);
+    try { cv.setPointerCapture(ev.pointerId); } catch { } dedos.set(ev.pointerId, local(ev));
+    if (dedos.size === 2) { const [p, q] = [...dedos.values()]; gesto = { tipo: 'pellizco', d: Math.hypot(p[0] - q[0], p[1] - q[1]) }; return; }
+    const [x, y] = local(ev), [px, py] = plAPx(PL.e, PL.n, cv.width), f = cv.width / 560;
+    gesto = Math.hypot(x - px, y - py) < 28 * f ? { tipo: 'rumbo' } : { tipo: 'tocar', x, y, ce: PL.ce, cn: PL.cn };
   });
   cv.addEventListener('pointermove', ev => {
-    if (!PL.arrastrando) return;
-    const dx = ev.clientX - PL.x0, dy = ev.clientY - PL.y0;
-    if (Math.hypot(dx, dy) > 12) { PL.yaw = Math.atan2(dx, -dy) * 180 / Math.PI; dibujarPlano(); infoPlano(PL.e, PL.n); }
+    if (!dedos.has(ev.pointerId) || !gesto) return;
+    dedos.set(ev.pointerId, local(ev));
+    const W = cv.width, [x, y] = local(ev);
+    if (gesto.tipo === 'pellizco' && dedos.size === 2) {
+      const [p, q] = [...dedos.values()], d = Math.hypot(p[0] - q[0], p[1] - q[1]);
+      if (gesto.d > 0) zoomPlano(d / gesto.d, (p[0] + q[0]) / 2, (p[1] + q[1]) / 2);
+      gesto.d = d;
+    } else if (gesto.tipo === 'rumbo') {
+      const [px, py] = plAPx(PL.e, PL.n, W);
+      if (Math.hypot(x - px, y - py) > 10) { PL.yaw = Math.atan2(x - px, -(y - py)) * 180 / Math.PI; dibujarPlano(); infoPlano(); }
+    } else if (gesto.tipo === 'tocar' || gesto.tipo === 'mover') {
+      if (gesto.tipo === 'tocar' && Math.hypot(x - gesto.x, y - gesto.y) < 10) return;
+      gesto.tipo = 'mover';
+      const A = CFG.alcance;
+      PL.ce = gesto.ce - (x - gesto.x) / W * 2 * A / PL.s; PL.cn = gesto.cn + (y - gesto.y) / W * 2 * A / PL.s;
+      limitarVista(); dibujarPlano(); pedirSombra();
+    }
   });
-  cv.addEventListener('pointerup', () => { if (!PL.arrastrando) return; PL.arrastrando = false; irA(PL.e, PL.n, PL.yaw); });
+  const soltar = ev => {
+    dedos.delete(ev.pointerId);
+    if (gesto?.tipo === 'tocar' && dedos.size === 0) { [PL.e, PL.n] = plDePx(gesto.x, gesto.y, cv.width); dibujarPlano(); infoPlano(); }
+    if (dedos.size === 0 || gesto?.tipo === 'pellizco') gesto = null;
+  };
+  cv.addEventListener('pointerup', soltar); cv.addEventListener('pointercancel', soltar);
+  cv.addEventListener('wheel', ev => { ev.preventDefault(); const [x, y] = local(ev); zoomPlano(ev.deltaY < 0 ? 1.25 : 0.8, x, y); }, { passive: false });
+  $('#plano-mas').onclick = () => { const W = cv.width; zoomPlano(1.6, ...plAPx(PL.e, PL.n, W).map(v => Math.min(W, Math.max(0, v)))); };
+  $('#plano-menos').onclick = () => zoomPlano(1 / 1.6, cv.width / 2, cv.width / 2);
+  $('#plano-ir').onclick = () => irA(PL.e, PL.n, PL.yaw);
   $('#plano-cerrar').onclick = () => { $('#plano').hidden = true; };
   $('#plano').addEventListener('click', e => { if (e.target.id === 'plano') $('#plano').hidden = true; });
   $('#btn-plano').onclick = abrirPlano;
