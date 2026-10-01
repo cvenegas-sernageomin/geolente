@@ -1,3 +1,5 @@
 tools/src/*
 !tools/src/leyenda.json
 __pycache__/
+/mapas/
+tools/mapas/slyr/

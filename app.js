@@ -7,6 +7,7 @@ import { LineGeometry } from './vendor/three/lines/LineGeometry.js';
 import { LineSegments2 } from './vendor/three/lines/LineSegments2.js';
 import { LineSegmentsGeometry } from './vendor/three/lines/LineSegmentsGeometry.js';
 import { CATEGORIAS, datoMarino, contextoEdad, periodo, era, FALLA, svgFalla } from './contenido.js';
+import { cargarMapas, pintarMapa, colorUnidad, dentroBorde } from './mapas.js';
 
 const $ = s => document.querySelector(s);
 const params = new URLSearchParams(location.search);
@@ -23,9 +24,9 @@ const CFG = {
 const CAPAS = ['🪨 Mapa geológico', '🛰️ Imagen satelital', '🛰️ Satelital + geología'];
 
 export const LUGARES = [
+  { n: 'El Enladrillado · valle del Río Claro', ico: '🗺️', d: 'Desde el mirador de Altos de Lircay: el volcán Descabezado Grande y su lava en el valle, con el mapa geológico detallado 1:50.000.', lat: -35.6023, lon: -70.9744, rumbo: 92 },
   { n: 'Baños Morales · Cajón del Maipo', ico: '🌋', d: 'El volcán San José y el Morado a pocos kilómetros, con 13 unidades geológicas en 10 km a la redonda.', lat: -33.7925, lon: -70.0803, rumbo: 0 },
   { n: 'Alto Valle del Elqui · Coquimbo', ico: '🏜️', d: 'Cordillera desértica cerca de los 30°S: 13 unidades geológicas distintas en un radio de 10 km.', lat: -30.0500, lon: -70.0500, rumbo: 0 },
-  { n: 'Cochamó · el Yosemite chileno', ico: '🧗', d: 'Murallas de granito y cumbres a pico sobre el valle, con rocas volcánicas y sedimentarias alrededor.', lat: -41.4000, lon: -72.1300, rumbo: 0 },
 ];
 
 // ------------------------------------------------------------------ utilidades
@@ -170,12 +171,13 @@ function hLocal(e, n) {
 }
 
 // ------------------------------------------------------------------ datos geológicos
-let UNI = null, INDICE = null, FALLAS = null, DECL = null, CUMBRES = [];
+let UNI = null, INDICE = null, FALLAS = null, DECL = null, CUMBRES = [], MAPAS = null;
 async function cargarBase() {
   const [u, i, f, d] = await Promise.all(['data/unidades.json', 'data/geo/index.json', 'data/fallas.json', 'data/declinacion.json']
     .map(p => fetch(p).then(r => r.json())));
   UNI = u; INDICE = new Set(i.teselas); FALLAS = f; DECL = d;
   try { CUMBRES = (await (await fetch('data/cumbres.json')).json()).c; } catch { CUMBRES = []; }
+  try { MAPAS = await (await fetch('data/mapas/index.json')).json(); } catch { MAPAS = null; }
   // "S I" del mapa 1:1M = lagos y glaciares; se separan con el relieve (ver clasificarAguaHielo)
   UNI['S I·lago'] = { ...u['S I'], cod: 'S I·lago', cat: 'lago', titulo: 'Lago', edad: '', color: '#6FAFD9', desc: 'Cuerpo de agua: el mapa no asigna una unidad de roca.' };
   UNI['S I·glaciar'] = { ...u['S I'], cod: 'S I·glaciar', cat: 'glaciaractual', titulo: 'Glaciar', edad: '', color: '#E4F0F8', desc: 'Cuerpo de hielo: el mapa no asigna una unidad de roca.' };
@@ -237,6 +239,13 @@ function dentroAnillo(r, x, y) {
   return c;
 }
 function unidadEn(lon, lat) {
+  // primero los mapas detallados (1:50.000); fuera de ellos, el 1:1M
+  for (const p of ESC.polysDet) {
+    const b = p.bb; if (lon < b[0] || lon > b[2] || lat < b[1] || lat > b[3]) continue;
+    if (!dentroAnillo(p.anillos[0], lon, lat)) continue;
+    let hueco = false; for (let k = 1; k < p.anillos.length; k++) if (dentroAnillo(p.anillos[k], lon, lat)) { hueco = true; break; }
+    if (!hueco) return p.cod;
+  }
   for (const p of ESC.polys) {
     const b = p.bb; if (lon < b[0] || lon > b[2] || lat < b[1] || lat > b[3]) continue;
     if (!dentroAnillo(p.anillos[0], lon, lat)) continue;
@@ -246,9 +255,36 @@ function unidadEn(lon, lat) {
   return null;
 }
 
+// ------------------------------------------------------------------ mapas detallados (1:50.000)
+// Sus unidades se agregan a UNI con clave "<mapa>:<código>" para que etiquetas, mira, fichas y colección funcionen igual.
+const NOM_FALLA = { inversa: 'inversa', normal: 'normal', sinistral: 'de rumbo sinistral', dextral: 'de rumbo dextral', rumbo: 'de rumbo', indet: 'indeterminada' };
+const INF_FALLA = ['observada', 'inferida', 'cubierta'];
+async function cargarDetalle(A) {
+  ESC.det = []; ESC.polysDet = []; ESC.fallasDet = []; ESC.pins = [];
+  if (!MAPAS) return;
+  const [w, s] = aLL(-A, -A), [e, n] = aLL(A, A);
+  ESC.det = await cargarMapas(MAPAS, [w, s, e, n]);
+  for (const M of ESC.det) {
+    for (const [cod, u] of Object.entries(M.u)) {
+      const clave = `${M.id}:${cod}`;
+      UNI[clave] = {
+        cod: clave, codigo: cod, cat: CATEGORIAS[u.cat] ? u.cat : 'sininfo', titulo: u.n || `Unidad ${cod}`, edad: u.e, pisos: u.pi, ma: u.ma, aprox: u.ap,
+        color: colorUnidad(u), desc: [u.def, u.d].filter(Boolean).join(' · '), tipo: u.t, geocron: u.g, mapa: M.titulo, hoja: M.hoja,
+      };
+    }
+    for (const p of M.polys) ESC.polysDet.push({ ...p, cod: `${M.id}:${p.cod}`, M });
+    M.lf.forEach(l => ESC.fallasDet.push({ ...l, M }));
+    M.pg.forEach(([lon, lat, txt, met, mat, lit, uni, sigla, ref]) => ESC.pins.push({ tipo: 'dat', lon, lat, txt, met, mat, lit, uni, sigla, ref, M }));
+    M.pf.forEach(([lon, lat, tipo, loc, edad, ref]) => ESC.pins.push({ tipo: 'fos', lon, lat, txt: tipo, loc, edad, ref, M }));
+  }
+}
+// datos de una falla: índice numérico = catálogo CHAF; 'd<n>' = falla de un mapa detallado
+const fallaDet = fi => typeof fi === 'string' ? ESC.fallasDet[+fi.slice(1)] : null;
+function nombreFalla(fi) { const d = fallaDet(fi); return d ? d.n : FALLAS.f[fi].n; }
+
 // ------------------------------------------------------------------ escena three.js
-const ESC = { polys: [], fallas: [], cand: [], candF: [], listo: false, modo: 'explorar' };
-let renderer, scene, camera, terrenoColor, terrenoProf, grupoFallas, texMapa, texSat = null, texVacia;
+const ESC = { polys: [], polysDet: [], det: [], fallasDet: [], pins: [], fallas: [], cand: [], candF: [], listo: false, modo: 'explorar' };
+let renderer, scene, camera, terrenoColor, terrenoProf, grupoFallas, texMapa, texSat = null, texVacia, texDet = [];
 
 function iniciarThree() {
   texVacia = new THREE.DataTexture(new Uint8Array([138, 132, 120, 255]), 1, 1); texVacia.needsUpdate = true;
@@ -287,12 +323,23 @@ varying vec2 vUv; varying float vDist; varying vec3 vN;
 void main(){ vUv = uv; vN = normal; vec4 wp = modelMatrix * vec4(position,1.0);
   vDist = length(wp.xz - cameraPosition.xz); gl_Position = projectionMatrix * viewMatrix * wp; }`;
 const FS = `
-uniform sampler2D mapa, sat; uniform float opacidad, fadeCerca, fadeLejos, modoAR, soloProf, alcance, capa; uniform vec3 luz, cielo;
+uniform sampler2D mapa, sat, det0, det1; uniform vec4 b0, b1; uniform float nDet;
+uniform float opacidad, fadeCerca, fadeLejos, modoAR, soloProf, alcance, capa; uniform vec3 luz, cielo;
 varying vec2 vUv; varying float vDist; varying vec3 vN;
+// mapa detallado encima del 1:1M, dentro de su rectángulo b = (u0, v0, u1, v1)
+float dA = 0.0;
+vec4 encima(vec4 t, sampler2D d, vec4 b) {
+  vec2 q = (vUv - b.xy) / (b.zw - b.xy);
+  if (q.x < 0.0 || q.y < 0.0 || q.x > 1.0 || q.y > 1.0) return t;
+  vec4 c = texture2D(d, q); dA = max(dA, c.a);
+  return vec4(mix(t.rgb, c.rgb, c.a), max(t.a, c.a));
+}
 void main(){
   if (modoAR > 0.5 && vDist < fadeCerca) discard;
   if (soloProf > 0.5) { gl_FragColor = vec4(0.0); return; }
   vec4 t = texture2D(mapa, vUv);
+  if (nDet > 0.5) t = encima(t, det0, b0);
+  if (nDet > 1.5) t = encima(t, det1, b1);
   float sh = clamp(dot(normalize(vN), luz), 0.0, 1.0);
   float fade = (modoAR > 0.5 ? smoothstep(fadeCerca, fadeLejos, vDist) : 1.0) * (1.0 - smoothstep(alcance*0.88, alcance, max(abs(vUv.x-0.5), abs(vUv.y-0.5))*2.0*alcance));
   vec3 s = texture2D(sat, vUv).rgb; // capas 1 y 2: foto satelital drapeada sobre el relieve (ya trae sus propias sombras)
@@ -303,12 +350,12 @@ void main(){
       return;
     }
     float a = t.a * opacidad * fade; if (a < 0.02) discard;
-    vec3 cc = mix(vec3(dot(t.rgb, vec3(0.299,0.587,0.114))), t.rgb, 0.82);
+    vec3 cc = mix(vec3(dot(t.rgb, vec3(0.299,0.587,0.114))), t.rgb, mix(0.82, 1.0, dA)); // el mapa detallado con sus colores originales
     gl_FragColor = vec4(cc, a);
   } else {
     vec3 base = vec3(0.60, 0.57, 0.52);
-    vec3 tc = mix(vec3(dot(t.rgb, vec3(0.299,0.587,0.114))), t.rgb, 0.8);
-    vec3 c = mix(base, tc, t.a * (0.35 + 0.65 * opacidad)) * (0.38 + 0.8 * sh);
+    vec3 tc = mix(vec3(dot(t.rgb, vec3(0.299,0.587,0.114))), t.rgb, mix(0.8, 1.0, dA));
+    vec3 c = mix(base, tc, t.a * (0.35 + 0.65 * opacidad)) * mix(0.38 + 0.8 * sh, 0.62 + 0.45 * sh, dA); // sombreado más suave sobre el mapa detallado
     if (capa > 0.5) c = mix(s, tc, capa > 1.5 ? t.a * opacidad : 0.0) * (0.8 + 0.3 * sh);
     float niebla = smoothstep(alcance * 0.15, alcance * 1.1, vDist) * 0.55;
     gl_FragColor = vec4(mix(c, cielo, niebla), 1.0);
@@ -341,6 +388,20 @@ function pintarTextura(A) {
   t.anisotropy = renderer.capabilities.getMaxAnisotropy();
   t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter;
   return t;
+}
+
+// Un canvas por mapa detallado (máx. 2): cada uno cubre solo su hoja, así la resolución llega a ~5–7 m por píxel
+function pintarDetalle(A) {
+  const S = Math.min(4096, renderer.capabilities.maxTextureSize);
+  return ESC.det.slice(0, 2).map(M => {
+    const r = pintarMapa(M, A, aEN, S); if (!r) return null;
+    const t = new THREE.CanvasTexture(r.canvas);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter;
+    t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+    return { t, uv: r.uv, M };
+  }).filter(Boolean);
 }
 
 // Imagen satelital (Esri World Imagery, CORS abierto): mosaico de teselas dibujado en el mismo cuadrado ±A que el mapa.
@@ -406,6 +467,8 @@ function construirTerreno(A) {
   g.setIndex(idx); g.computeVertexNormals();
   const uni = () => ({
     mapa: { value: texMapa }, sat: { value: texSat || texVacia }, capa: { value: texSat ? CFG.capa : 0 }, opacidad: { value: CFG.opacidad }, fadeCerca: { value: CFG.fadeCerca }, fadeLejos: { value: CFG.fadeLejos },
+    det0: { value: texDet[0]?.t || texVacia }, det1: { value: texDet[1]?.t || texVacia }, nDet: { value: Math.min(2, texDet.length) },
+    b0: { value: new THREE.Vector4(...(texDet[0]?.uv || [0, 0, 1, 1])) }, b1: { value: new THREE.Vector4(...(texDet[1]?.uv || [0, 0, 1, 1])) },
     modoAR: { value: ESC.modo === 'ar' ? 1 : 0 }, soloProf: { value: 0 }, alcance: { value: A },
     luz: { value: new THREE.Vector3(-0.5, 0.75, 0.45).normalize() }, cielo: { value: new THREE.Color(0xbfd6ea) },
   });
@@ -463,9 +526,7 @@ function construirFallas(A) {
   grupoFallas = new THREE.Group(); grupoFallas.renderOrder = 2;
   ESC.fallas = []; ESC.candF = [];
   const q = FALLAS.q, lim = A * 0.98;
-  FALLAS.f.forEach((f, fi) => {
-    for (const enc of f.g) {
-      const ll = decodificar(enc, q);
+  const agregar = (ll, fi, color, discont, conEtiqueta, halo = 0x10141c) => {
       // densificar a ~40 m y colgar del relieve
       const pts = [];
       for (let k = 0; k < ll.length - 2; k += 2) {
@@ -480,17 +541,15 @@ function construirFallas(A) {
         if (tramo.length >= 2) {
           const flat = []; for (const [e, n] of tramo) flat.push(e, hLocal(e, n) + 12, -n);
           const geo = new LineGeometry(); geo.setPositions(flat);
-          const color = COLOR_ACT[f.act] || 0xff7a1a;
-          const discont = /inferida|cubierta|ciega/.test(f.tipo);
           const mat = new LineMaterial({ color, linewidth: 4.5, dashed: discont, dashSize: 220, gapSize: 140, transparent: true, opacity: 0.95, depthTest: true, depthWrite: false });
           mat.resolution.set(VW(), VH());
           const l = new Line2(geo, mat); if (discont) l.computeLineDistances();
           l.renderOrder = 3; grupoFallas.add(l);
-          const halo = new LineMaterial({ color: 0x10141c, linewidth: 8, transparent: true, opacity: 0.4, depthTest: true, depthWrite: false });
-          halo.resolution.set(VW(), VH());
-          const lh = new Line2(geo, halo); lh.renderOrder = 2; grupoFallas.add(lh);
+          const mh = new LineMaterial({ color: halo, linewidth: 8, transparent: true, opacity: 0.4, depthTest: true, depthWrite: false });
+          mh.resolution.set(VW(), VH());
+          const lh = new Line2(geo, mh); lh.renderOrder = 2; grupoFallas.add(lh);
           ESC.fallas.push({ fi, pts: tramo.slice() });
-          for (let k = 0; k < tramo.length; k += 8) {
+          if (conEtiqueta) for (let k = 0; k < tramo.length; k += 8) {
             const [e, n] = tramo[k];
             ESC.candF.push({ fi, pos: new THREE.Vector3(e, hLocal(e, n) + 12, -n) });
           }
@@ -499,8 +558,12 @@ function construirFallas(A) {
       };
       for (const p of pts) { if (Math.abs(p[0]) < lim && Math.abs(p[1]) < lim) tramo.push(p); else cerrar(); }
       cerrar();
-    }
+  };
+  FALLAS.f.forEach((f, fi) => {
+    for (const enc of f.g) agregar(decodificar(enc, q), fi, COLOR_ACT[f.act] || 0xff7a1a, /inferida|cubierta|ciega/.test(f.tipo), true);
   });
+  // fallas de los mapas detallados: blancas con borde oscuro (no son necesariamente activas); etiqueta solo si tienen nombre
+  ESC.fallasDet.forEach((f, i) => agregar(f.ll, 'd' + i, 0xf4f1ea, f.i > 0, !!f.n, 0x000000));
   grupoFallas.visible = CFG.fallas;
   scene.add(grupoFallas);
 }
@@ -514,10 +577,18 @@ function construirCandidatos(A) {
     const [lon, lat] = aLL(e, n), cod = unidadEn(lon, lat);
     if (cod) ESC.cand.push({ cod, pos: new THREE.Vector3(e, hLocal(e, n) + 18, -n), peso: 1 });
   }
-  for (const p of ESC.polys) {
+  for (const p of [...ESC.polys, ...ESC.polysDet]) {
     const [e, n] = aEN(p.lab[0], p.lab[1]);
     if (Math.abs(e) > A * 0.95 || Math.abs(n) > A * 0.95 || Math.hypot(e, n) < 450) continue;
+    if (!p.M && unidadEn(p.lab[0], p.lab[1]) !== p.cod) continue; // polígono 1:1M tapado por un mapa detallado
     ESC.cand.push({ cod: p.cod, pos: new THREE.Vector3(e, hLocal(e, n) + 18, -n), peso: 2 });
+  }
+}
+// dataciones y fósiles de los mapas detallados: etiquetas propias sobre el punto
+function prepararPins(A) {
+  for (const p of ESC.pins) {
+    const [e, n] = aEN(p.lon, p.lat);
+    p.pos = Math.abs(e) < A * 0.97 && Math.abs(n) < A * 0.97 ? new THREE.Vector3(e, hLocal(e, n) + 10, -n) : null;
   }
 }
 
@@ -656,11 +727,20 @@ function actualizarContador() {
 function htmlEtiqueta(cod) {
   const u = UNI[cod], c = CATEGORIAS[u.cat] || CATEGORIAS.sininfo;
   const nuevo = !vistos.u[cod];
-  return `<div class="etq-caja"><span class="etq-ico">${c.ico}</span><span class="etq-txt"><b>${esc(c.nombre)}</b>
+  const nombre = u.cat === 'sininfo' && u.codigo ? `Unidad ${u.codigo}` : c.nombre;
+  return `<div class="etq-caja"><span class="etq-ico">${c.ico}</span><span class="etq-txt"><b>${esc(nombre)}${u.codigo ? ` <em class="etq-cod">${esc(u.codigo)}</em>` : ''}</b>
     <small>${u.ma ? esc(fmtRango(u, true)) + (u.edad ? ' · ' + esc(edadCorta(u.edad)) : '') : esc(c.lema)}</small></span>${nuevo ? '<i class="etq-nuevo">¡nuevo!</i>' : ''}</div>
     <div class="etq-palo"></div><div class="etq-punto"></div>`;
 }
+function htmlPin(p) {
+  return p.tipo === 'dat'
+    ? `<div class="etq-caja"><span class="etq-ico">⏳</span><span class="etq-txt"><b>${esc(p.txt)}</b><small>Datación ${esc(p.met || '')}${p.mat ? ' · ' + esc(p.mat.toLowerCase()) : ''}</small></span></div><div class="etq-palo"></div><div class="etq-punto"></div>`
+    : `<div class="etq-caja"><span class="etq-ico">🐚</span><span class="etq-txt"><b>Fósil: ${esc(p.txt.toLowerCase())}</b><small>${esc(p.edad || p.loc || '')}</small></span></div><div class="etq-palo"></div><div class="etq-punto"></div>`;
+}
 function htmlEtiquetaFalla(fi) {
+  const d = fallaDet(fi);
+  if (d) return `<div class="etq-caja"><span class="etq-ico">⚡</span><span class="etq-txt"><b>${esc(d.n)}</b>
+    <small>falla ${esc(NOM_FALLA[d.t])} · ${esc(INF_FALLA[d.i])}</small></span></div><div class="etq-palo"></div><div class="etq-punto"></div>`;
   const f = FALLAS.f[fi];
   return `<div class="etq-caja"><span class="etq-ico">⚡</span><span class="etq-txt"><b>${esc(f.n ? 'Falla ' + f.n : 'Falla activa')}</b>
     <small>${esc(f.s ? 'falla ' + f.s : 'falla')}${f.act ? ' · actividad ' + f.act : ''}</small></span></div><div class="etq-palo"></div><div class="etq-punto"></div>`;
@@ -671,7 +751,7 @@ function htmlCumbre(k) {
 }
 function crearEtiqueta(clave, html, color, alTocar) {
   const el = document.createElement('div');
-  el.className = 'etq' + (clave.startsWith('§') ? ' etq-falla' : clave.startsWith('▲') ? ' cum' : '');
+  el.className = 'etq' + (clave.startsWith('§') ? ' etq-falla' : clave.startsWith('▲') ? ' cum' : clave.startsWith('⌚') ? ' etq-pin' : '');
   el.style.setProperty('--c', color);
   el.innerHTML = html;
   el.addEventListener('click', ev => { ev.stopPropagation(); alTocar(); });
@@ -725,7 +805,7 @@ function seleccionarEtiquetas(t) {
       const cf = new Map(), sp2 = { x: 0, y: 0 };
       for (const c of ESC.candF) {
         if (!enPantalla(c.pos, sp2) || sp2.y < 70 || sp2.y > VH() - 150) continue;
-        const clave = '§' + (FALLAS.f[c.fi].n || '#' + c.fi);
+        const clave = '§' + (nombreFalla(c.fi) || '#' + c.fi);
         const dc = Math.hypot(sp2.x - VW() / 2, sp2.y - VH() / 2);
         const prev = cf.get(clave);
         if (prev && prev.dc <= dc) continue;
@@ -739,6 +819,17 @@ function seleccionarEtiquetas(t) {
         FI_DE.set(clave, v.fi);
       });
     }
+    // dataciones y fósiles: los 4 más cercanos que se ven (a menos de 8 km), para no tapar el paisaje
+    const sp5 = { x: 0, y: 0 }, c0 = camera.position, cerca = [];
+    ESC.pins.forEach((p, i) => {
+      if (!p.pos) return;
+      const d = Math.hypot(p.pos.x - c0.x, p.pos.z - c0.z);
+      if (d > 8000 || !enPantalla(p.pos, sp5) || sp5.y < 70 || sp5.y > VH() - 150) return;
+      cerca.push({ i, d });
+    });
+    cerca.sort((a, b) => a.d - b.d);
+    let puestos = 0;
+    for (const { i } of cerca) { if (puestos >= 4) break; if (!visible(ESC.pins[i].pos)) continue; quiero.set('⌚' + i, ESC.pins[i].pos); puestos++; }
   }
   for (const [k, e] of ETQ) if (!quiero.has(k)) { e.el.classList.remove('ver'); setTimeout(() => e.el.remove(), 300); ETQ.delete(k); }
   for (const [k, pos] of quiero) {
@@ -746,6 +837,7 @@ function seleccionarEtiquetas(t) {
     if (!e) {
       if (k.startsWith('§')) { const fi = FI_DE.get(k); e = crearEtiqueta(k, htmlEtiquetaFalla(fi), '#ff5a36', () => abrirFichaFalla(fi)); }
       else if (k.startsWith('▲')) { const i = +k.slice(1); e = crearEtiqueta(k, htmlCumbre(ESC.cumbres[i]), '#fff', () => abrirFichaCumbre(i)); }
+      else if (k.startsWith('⌚')) { const i = +k.slice(1), p = ESC.pins[i]; e = crearEtiqueta(k, htmlPin(p), p.tipo === 'dat' ? '#d4145a' : '#2f9e6e', () => abrirFichaPin(i)); }
       else e = crearEtiqueta(k, htmlEtiqueta(k), UNI[k].color, () => abrirFicha(k));
       ETQ.set(k, e);
     }
@@ -756,7 +848,7 @@ function seleccionarEtiquetas(t) {
 function posicionarEtiquetas(medir) {
   const colocadas = [], sp = { x: 0, y: 0 };
   // las fallas primero (menos), luego unidades en orden de inserción
-  const prio = k => k.startsWith('▲') ? 2 : k.startsWith('§') ? 1 : 0;
+  const prio = k => k.startsWith('▲') ? 2 : k.startsWith('§') || k.startsWith('⌚') ? 1 : 0;
   const lista = [...ETQ.entries()].sort((a, b) => prio(b[0]) - prio(a[0]));
   for (const [k, e] of lista) {
     if (!e.pos || !enPantalla(e.pos, sp)) { e.el.style.opacity = 0; continue; }
@@ -810,7 +902,7 @@ function actualizarMira(t) {
   el.style.setProperty('--c', u ? u.color : '#ff5a36');
   const donde = dist < 60 ? 'El suelo a tus pies' : `Estás mirando · a ${fmtDist(dist)}`;
   el.innerHTML = (u ? `<span class="mir-ico">${cat.ico}</span><span class="mir-txt"><small>${donde}</small>
-      <b>${esc(cat.nombre)}</b><em>${esc(u.ma ? fmtRango(u, true) : cat.lema)}</em></span>` : `<span class="mir-ico">⚡</span><span class="mir-txt"><small>Estás mirando · a ${fmtDist(dist)}</small><b>Una falla</b></span>`)
+      <b>${esc(u.cat === 'sininfo' && u.codigo ? 'Unidad ' + u.codigo : cat.nombre)}${u.codigo ? ` <em class="etq-cod">${esc(u.codigo)}</em>` : ''}</b><em>${esc(u.ma ? fmtRango(u, true) : cat.lema)}</em></span>` : `<span class="mir-ico">⚡</span><span class="mir-txt"><small>Estás mirando · a ${fmtDist(dist)}</small><b>Una falla</b></span>`)
     + (falla != null && u ? `<span class="mir-falla">⚡ falla cerca</span>` : '') + `<span class="mir-mas">›</span>`;
 }
 
@@ -836,23 +928,43 @@ function abrirFicha(cod) {
   const media = u.ma ? (u.ma[0] + u.ma[1]) / 2 : null;
   const dato = u.cat === 'marina' ? datoMarino(u) : c.dato;
   const joven = (u.cat === 'volcanica' && u.ma && u.ma[0] <= 2.6) ? '<p class="nota">Es volcanismo joven: algunos de estos volcanes pueden volver a entrar en erupción.</p>' : '';
+  const det = !!u.codigo; // unidad de un mapa detallado 1:50.000
+  const edadTxt = [u.edad, u.pisos ? `pisos ${u.pisos}` : ''].filter(Boolean).join(' · ');
+  const gc = u.geocron && (u.geocron[0] || u.geocron[1]) ? `<p>Edades medidas en la unidad: ${[u.geocron[0], u.geocron[1]].filter(x => x != null).map(x => nf1.format(x)).join(' a ')} ${esc(u.geocron[2] || '')}.</p>` : '';
   $('#ficha-cuerpo').innerHTML = `
-    <header class="fi-cab" style="--c:${u.color}"><span class="fi-ico">${c.ico}</span><div><small>${esc(c.nombre)} · ${esc(c.lema)}</small><h2>${esc(u.titulo)}</h2></div></header>
+    <header class="fi-cab" style="--c:${u.color}"><span class="fi-ico">${c.ico}</span><div><small>${esc(u.cat === 'sininfo' && det ? 'Unidad geológica' : c.nombre)}${c.lema ? ' · ' + esc(c.lema) : ''}</small><h2>${esc(u.titulo)}</h2></div></header>
     ${u.ma ? `<section><h3>⏳ ¿Qué edad tiene?</h3><p class="grande">${esc(fmtRango(u))}</p>
-      <p>${esc(u.edad)} · era ${esc(era(media))}</p>
+      <p>${esc(edadTxt)} · era ${esc(era(media))}</p>${u.aprox ? '<p class="nota">Edad aproximada, deducida del código de la unidad: esta hoja del mapa todavía no trae su edad.</p>' : ''}${gc}
       <p>Si toda la historia de la Tierra (4.567 millones de años) fuera <b>un solo año</b>, esta roca se habría formado <b>${calendario(media)}</b>.</p>${barraAnio(media)}
       <p class="contexto">🌍 ${esc(contextoEdad(media))}</p></section>` : ''}
-    <section><h3>🔎 ¿Qué es?</h3><p>${esc(c.que)}</p>${joven}</section>
-    <section><h3>👀 ¿Cómo reconocerla?</h3><p>${esc(c.ver)}</p></section>
+    ${c.que ? `<section><h3>🔎 ¿Qué es?</h3><p>${esc(c.que)}</p>${joven}</section>` : ''}
+    ${c.ver ? `<section><h3>👀 ¿Cómo reconocerla?</h3><p>${esc(c.ver)}</p></section>` : ''}
     ${dato ? `<section class="dato"><h3>💡 ¿Sabías que…?</h3><p>${esc(dato)}</p></section>` : ''}
-    <section class="oficial"><h3>📖 Descripción del mapa oficial</h3><p>${esc(u.desc)}</p>
+    ${det ? `<section class="oficial"><h3>📖 Mapa geológico detallado</h3>${u.desc ? `<p>${esc(u.tipo ? u.tipo + ' · ' : '')}${esc(u.desc)}</p>` : ''}
+      <p class="cod">Unidad <b>${esc(u.codigo)}</b> · ${esc(u.hoja)}, escala 1:50.000, SERNAGEOMIN</p></section>
+    <p class="aviso">Mapa detallado: los límites entre unidades tienen una precisión de decenas de metros.</p>`
+    : `<section class="oficial"><h3>📖 Descripción del mapa oficial</h3><p>${esc(u.desc)}</p>
       <p class="cod">${u.cod.startsWith('S I') ? 'Lago o glaciar según el relieve' : `Unidad <b>${esc(u.cod)}</b>`} · Mapa Geológico de Chile 1:1.000.000, SERNAGEOMIN</p></section>
-    <p class="aviso">A esta escala, los límites entre unidades pueden estar corridos varios cientos de metros respecto del terreno.</p>`;
+    <p class="aviso">A esta escala, los límites entre unidades pueden estar corridos varios cientos de metros respecto del terreno.</p>`}`;
   mostrarFicha();
   marcarVisto('u', cod);
   const e = ETQ.get(cod); if (e) e.el.querySelector('.etq-nuevo')?.remove();
 }
 function abrirFichaFalla(fi) {
+  const d = fallaDet(fi);
+  if (d) {
+    const tipoTxt = d.t === 'normal' ? FALLA.tipos.normal : d.t === 'inversa' ? FALLA.tipos.inversa : /sinistral|dextral|rumbo/.test(d.t) ? FALLA.tipos.rumbo : '';
+    const sentido = d.t === 'inversa' ? 'inversa' : d.t === 'normal' ? 'normal' : /sinistral|dextral|rumbo/.test(d.t) ? 'de rumbo' : '';
+    $('#ficha-cuerpo').innerHTML = `
+      <header class="fi-cab" style="--c:#3a3a3a"><span class="fi-ico">⚡</span><div><small>Falla geológica · mapa detallado</small><h2>${esc(d.n || 'Falla sin nombre')}</h2></div></header>
+      <section><div class="chips"><span>Falla ${esc(NOM_FALLA[d.t])}</span><span>${esc(INF_FALLA[d.i][0].toUpperCase() + INF_FALLA[d.i].slice(1))}</span></div>
+        <p>${d.i === 0 ? 'Se vio en terreno.' : d.i === 1 ? 'No se ve directamente: se deduce de las rocas a ambos lados.' : 'Está tapada por sedimentos más jóvenes.'}</p></section>
+      <section><h3>🔎 ¿Qué es una falla?</h3><p>${esc(FALLA.que)}</p>${sentido ? svgFalla(sentido) : ''}${tipoTxt ? `<p>${esc(tipoTxt)}</p>` : ''}</section>
+      <section class="oficial"><h3>📖 Fuente</h3><p>${esc(d.M.hoja)}, escala 1:50.000, SERNAGEOMIN. Que una falla aparezca en el mapa geológico no significa que esté activa hoy.</p></section>`;
+    mostrarFicha();
+    marcarVisto('f', d.n || 'det-' + fi);
+    return;
+  }
   const f = FALLAS.f[fi];
   const tipoTxt = f.s.startsWith('normal') ? FALLA.tipos.normal : f.s.startsWith('inversa') ? FALLA.tipos.inversa : f.s.startsWith('de rumbo') ? FALLA.tipos.rumbo : '';
   $('#ficha-cuerpo').innerHTML = `
@@ -876,6 +988,32 @@ function abrirFichaCumbre(i) {
       <button class="col-item" id="fi-roca"><i style="background:${u.color}"></i><span>${c.ico} <b>${esc(c.nombre)}</b><small>${esc(u.titulo)}${u.ma ? ' · ' + esc(fmtRango(u, true)) : ''}</small></span></button></section>` : ''}
     <section class="oficial"><p>Nombre y altura: © colaboradores de OpenStreetMap / GeoNames; posición ajustada al relieve. Roca: Mapa Geológico de Chile 1:1.000.000, SERNAGEOMIN.</p></section>`;
   if (u) $('#fi-roca').onclick = () => abrirFicha(cod);
+  mostrarFicha();
+}
+const METODOS = {
+  'U-Pb': 'mide cuánto uranio de un cristal de circón se ha transformado en plomo. Los circones se forman cuando el magma se enfría, así que fechan el nacimiento de la roca.',
+  'Ar-Ar': 'mide el argón que se acumula al desintegrarse el potasio de la roca. Es de los métodos más precisos para fechar lavas y cenizas volcánicas.',
+  'K-Ar': 'mide el argón que produce el potasio radiactivo de la roca. Es el método clásico para fechar rocas volcánicas.',
+  'C14': 'mide el carbono-14 que queda en restos de plantas o carbón atrapados en el depósito. Sirve para los últimos ~50.000 años.',
+};
+function abrirFichaPin(i) {
+  const p = ESC.pins[i]; if (!p) return;
+  const d = p.pos ? Math.hypot(p.pos.x - camera.position.x, p.pos.z - camera.position.z) : null;
+  if (p.tipo === 'dat') {
+    const clave = Object.keys(METODOS).find(k => (p.met || '').replace(/[^A-Za-z0-9]/g, '').startsWith(k.replace(/[^A-Za-z0-9]/g, '')));
+    $('#ficha-cuerpo').innerHTML = `
+      <header class="fi-cab" style="--c:#d4145a"><span class="fi-ico">⏳</span><div><small>Datación radiométrica${d != null ? ' · a ' + fmtDist(d) : ''}</small><h2>${esc(p.txt)}</h2></div></header>
+      <section><div class="chips">${p.met ? `<span>Método ${esc(p.met)}</span>` : ''}${p.mat ? `<span>${esc(p.mat)}</span>` : ''}${p.lit ? `<span>${esc(p.lit)}</span>` : ''}${p.uni ? `<span>Unidad ${esc(p.uni)}</span>` : ''}</div>
+        <p>En este punto se tomó una muestra de roca y en el laboratorio se midió su edad: <b>${esc(p.txt.replace(/\bMa\b/, 'millones de años').replace(/\bka\b/, 'miles de años'))}</b>. El número después de ± es el margen de error.</p></section>
+      ${clave ? `<section><h3>🔬 ¿Cómo se mide?</h3><p>El método ${esc(clave)} ${esc(METODOS[clave])}</p></section>` : ''}
+      <section class="oficial"><h3>📖 Fuente</h3><p>${p.sigla ? `Muestra ${esc(p.sigla)}. ` : ''}${p.ref ? `${esc(p.ref)}. ` : ''}${esc(p.M.hoja)}, escala 1:50.000, SERNAGEOMIN.</p></section>`;
+  } else {
+    $('#ficha-cuerpo').innerHTML = `
+      <header class="fi-cab" style="--c:#2f9e6e"><span class="fi-ico">🐚</span><div><small>Localidad fosilífera${d != null ? ' · a ' + fmtDist(d) : ''}</small><h2>${esc(p.txt)}</h2></div></header>
+      <section>${p.loc ? `<p class="grande">${esc(p.loc)}</p>` : ''}${p.edad ? `<p>Edad de los fósiles: <b>${esc(p.edad)}</b>.</p>` : ''}
+        <p>Los fósiles son restos o huellas de seres vivos que quedaron atrapados en la roca. Además de contar qué vivía aquí, permiten saber la edad de las capas que los contienen.</p></section>
+      <section class="oficial"><h3>📖 Fuente</h3><p>${p.ref ? esc(p.ref) + '. ' : ''}${esc(p.M.hoja)}, escala 1:50.000, SERNAGEOMIN.</p></section>`;
+  }
   mostrarFicha();
 }
 function mostrarFicha() { const el = $('#ficha'); el.hidden = false; el.scrollTop = 0; requestAnimationFrame(() => el.classList.add('abierta')); }
@@ -1002,6 +1140,7 @@ async function abrirEn(lat, lon, modo, rumbo = 0, nombre = null) {
   if (!renderer) iniciarThree();
   for (const o of [terrenoColor, terrenoProf, grupoFallas, grupoPerfil, terrenoLejos]) if (o) { scene.remove(o); o.traverse?.(x => { x.geometry?.dispose(); x.material?.dispose(); }); }
   texMapa?.dispose(); texSat?.dispose(); texSat = null; cargandoSat = 0;
+  for (const d of texDet) d.t.dispose(); texDet = [];
   for (const [, e] of ETQ) e.el.remove(); ETQ.clear();
   try {
     cargando('Cargando el mapa geológico…');
@@ -1010,6 +1149,7 @@ async function abrirEn(lat, lon, modo, rumbo = 0, nombre = null) {
     S.decl = declinacion(lat, lon);
     const A = CFG.alcance;
     ESC.polys = await cargarGeologia(A);
+    try { await cargarDetalle(A); } catch (e) { console.error(e); ESC.det = []; ESC.polysDet = []; ESC.fallasDet = []; ESC.pins = []; }
     if (gen !== generacion) return;
     if (!ESC.polys.length) {
       cargando(); toast('Por ahora GeoLente solo tiene el mapa de Chile. Prueba un lugar de ejemplo.', 6000);
@@ -1023,12 +1163,14 @@ async function abrirEn(lat, lon, modo, rumbo = 0, nombre = null) {
     cargando('Pintando los cerros…');
     await new Promise(r => setTimeout(r, 30));
     texMapa = pintarTextura(A);
+    texDet = pintarDetalle(A);
     construirTerreno(A);
     if (CFG.capa) fijarCapa(CFG.capa);
     construirTerrenoLejano();
     construirFallas(A);
     construirCandidatos(A);
     prepararCumbres(A);
+    prepararPins(A);
     camera.position.set(0, hLocal(0, 0) + (modo === 'ar' ? CFG.ojo : 25), 0); // explorar: vista de dron bajo, evita que el plano cercano corte el suelo
     if (modo !== 'ar') { VISTA.yaw = rumbo == null || rumbo === 0 && nombre ? mejorRumbo() : rumbo; VISTA.pitch = -2; }
     actualizarModoShader(); ajustarTamano();
@@ -1037,6 +1179,7 @@ async function abrirEn(lat, lon, modo, rumbo = 0, nombre = null) {
     actualizarPisando();
     $('#lugar').textContent = modo === 'ar' ? 'Tu ubicación' : (nombre || LUGARES.find(l => Math.abs(l.lat - lat) < 1e-3 && Math.abs(l.lon - lon) < 1e-3)?.n || `${nf1.format(lat)}°, ${nf1.format(lon)}°`);
     if (!leer('visto-ayuda')) { mostrarAyuda(); guardar('visto-ayuda', '1'); }
+    else if (texDet.length) toast(`🗺️ Mapa detallado 1:50.000 · ${texDet.map(d => d.M.titulo).join(' y ')} · SERNAGEOMIN`, 5000);
   } catch (err) {
     console.error(err); cargando(); toast('No se pudo cargar este lugar: ' + (err.message || err), 6000);
   }
@@ -1260,8 +1403,8 @@ function mostrarAyuda() {
       <div class="ley"><i style="background:#42AED0"></i>Jurásico (145–201 Ma)</div><div class="ley"><i style="background:#983999"></i>Triásico (201–252 Ma)</div>
       <div class="ley"><i style="background:#67A599"></i>Paleozoico (252–539 Ma)</div><div class="ley"><i style="background:#E8485A"></i>Rocas intrusivas (rojos: más oscuro, más antiguo)</div>
       <p class="aviso">Ma = millones de años. Los colores siguen la carta cronoestratigráfica internacional.</p></section>
-    <section class="oficial"><h3>Fuentes</h3><p>Mapa Geológico de Chile 1:1.000.000 (SERNAGEOMIN, 2003) · Catálogo de Fallas Activas de Chile CHAF v1 (Melnick, Maldonado y Contreras, 2020; CC BY 4.0) · Nombres de cumbres: © colaboradores de OpenStreetMap (ODbL) y GeoNames (CC BY 4.0) · Relieve: teselas Terrarium (AWS Open Data, SRTM y otros) · Declinación magnética: WMM2025 (NOAA/BGS).</p>
-    <p class="aviso">Herramienta de divulgación. Escala regional: no reemplaza cartas geológicas de detalle ni estudios de peligros geológicos.</p></section>`;
+    <section class="oficial"><h3>Fuentes</h3><p>Mapa Geológico de Chile 1:1.000.000 (SERNAGEOMIN, 2003) · Mapas geológicos detallados 1:50.000 de Río Claro y Central Los Cipreses, Región del Maule (SERNAGEOMIN) · Catálogo de Fallas Activas de Chile CHAF v1 (Melnick, Maldonado y Contreras, 2020; CC BY 4.0) · Nombres de cumbres: © colaboradores de OpenStreetMap (ODbL) y GeoNames (CC BY 4.0) · Relieve: teselas Terrarium (AWS Open Data, SRTM y otros) · Declinación magnética: WMM2025 (NOAA/BGS).</p>
+    <p class="aviso">Herramienta de divulgación: no reemplaza las cartas geológicas ni estudios de peligros geológicos.</p></section>`;
   mostrarFicha();
 }
 function volverInicio() {
@@ -1292,7 +1435,7 @@ function mostrarDiagnostico(d, fatal) {
     <p class="aviso">Navegador: ${esc(d.nav)}</p></section>
     <section class="diag-acciones"><button class="btn primario" id="diag-reintentar">Reintentar</button>${fatal ? '<button class="btn" id="diag-explorar">Usar un lugar de ejemplo</button>' : ''}</section>`;
   $('#diag-reintentar').onclick = () => { cerrarFicha(); empezarAR(); };
-  if (fatal) $('#diag-explorar').onclick = () => { cerrarFicha(); const l = LUGARES[0]; abrirEn(l.lat, l.lon, 'explorar', null, l.n); };
+  if (fatal) $('#diag-explorar').onclick = () => { cerrarFicha(); const l = LUGARES[0]; abrirEn(l.lat, l.lon, 'explorar', l.rumbo || null, l.n); };
   mostrarFicha();
 }
 async function empezarAR() {
@@ -1381,7 +1524,7 @@ function iniciarBuscador() {
 // ------------------------------------------------------------------ interfaz
 function iniciarUI() {
   $('#lugares').innerHTML = LUGARES.map((l, i) => `<button data-i="${i}"><span class="t-ico">${l.ico}</span><span><b>${esc(l.n)}</b><small>${esc(l.d)}</small></span></button>`).join('');
-  $('#lugares').onclick = e => { const b = e.target.closest('[data-i]'); if (b) { const l = LUGARES[+b.dataset.i]; abrirEn(l.lat, l.lon, 'explorar', null, l.n); } };
+  $('#lugares').onclick = e => { const b = e.target.closest('[data-i]'); if (b) { const l = LUGARES[+b.dataset.i]; abrirEn(l.lat, l.lon, 'explorar', l.rumbo || null, l.n); } };
   iniciarBuscador();
   $('#btn-ar').onclick = empezarAR;
   $('#btn-explorar-aqui').onclick = async () => {
