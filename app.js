@@ -20,8 +20,8 @@ const CFG = {
   fallas: leer('fallas') !== '0', etiquetas: leer('etiquetas') !== '0',
   perfil: leer('perfil') !== '0', cumbres: leer('cumbres') !== '0',
   capa: +(leer('capa') || 0), // 0 = mapa geológico, 1 = imagen satelital, 2 = satelital + geología
+  detalle: leer('detalle') !== '0', pins: leer('pins') !== '0', // mapas detallados 1:50.000 y sus dataciones/fósiles
 };
-const CAPAS = ['🪨 Mapa geológico', '🛰️ Imagen satelital', '🛰️ Satelital + geología'];
 
 export const LUGARES = [
   { n: 'El Enladrillado · valle del Río Claro', ico: '🗺️', d: 'Desde el mirador de Altos de Lircay: el volcán Descabezado Grande y su lava en el valle, con el mapa geológico detallado 1:50.000.', lat: -35.6023, lon: -70.9744, rumbo: 92 },
@@ -261,7 +261,7 @@ const NOM_FALLA = { inversa: 'inversa', normal: 'normal', sinistral: 'de rumbo s
 const INF_FALLA = ['observada', 'inferida', 'cubierta'];
 async function cargarDetalle(A) {
   ESC.det = []; ESC.polysDet = []; ESC.fallasDet = []; ESC.pins = [];
-  if (!MAPAS) return;
+  if (!MAPAS || !CFG.detalle) return;
   const [w, s] = aLL(-A, -A), [e, n] = aLL(A, A);
   ESC.det = await cargarMapas(MAPAS, [w, s, e, n]);
   for (const M of ESC.det) {
@@ -277,6 +277,20 @@ async function cargarDetalle(A) {
     M.pg.forEach(([lon, lat, txt, met, mat, lit, uni, sigla, ref]) => ESC.pins.push({ tipo: 'dat', lon, lat, txt, met, mat, lit, uni, sigla, ref, M }));
     M.pf.forEach(([lon, lat, tipo, loc, edad, ref]) => ESC.pins.push({ tipo: 'fos', lon, lat, txt: tipo, loc, edad, ref, M }));
   }
+}
+// ¿hay mapas detallados en la zona? (se calcula con el índice, aunque estén apagados)
+function mapasEnZona() {
+  if (!MAPAS || !O) return [];
+  const A = CFG.alcance, [w, s] = aLL(-A, -A), [e, n] = aLL(A, A);
+  return MAPAS.mapas.filter(m => m.bbox[2] > w && m.bbox[0] < e && m.bbox[3] > s && m.bbox[1] < n);
+}
+function actualizarInfoDetalle() {
+  const hay = mapasEnZona();
+  $('#detalle-info').textContent = hay.length ? hay.map(m => m.titulo).join(' · ') : 'no hay en esta zona';
+  $('#c-detalle').disabled = !hay.length;
+  $('#fila-detalle').classList.toggle('apagado', !hay.length);
+  $('#c-pins').disabled = !hay.length || !CFG.detalle;
+  $('#c-pins').closest('label').classList.toggle('apagado', !hay.length || !CFG.detalle);
 }
 // datos de una falla: índice numérico = catálogo CHAF; 'd<n>' = falla de un mapa detallado
 const fallaDet = fi => typeof fi === 'string' ? ESC.fallasDet[+fi.slice(1)] : null;
@@ -439,8 +453,8 @@ async function cargarSatelite(A, gen) {
 }
 let cargandoSat = 0;
 function fijarCapa(c) {
-  CFG.capa = c; guardar('capa', c); $('#s-capa').value = c;
-  $('#btn-capa').classList.toggle('activo', c > 0);
+  CFG.capa = c; guardar('capa', c);
+  document.querySelectorAll('#fondos [data-capa]').forEach(b => b.classList.toggle('activo', +b.dataset.capa === c));
   if (!terrenoColor) return;
   if (c > 0 && !texSat) {
     if (cargandoSat !== generacion) { cargandoSat = generacion; cargarSatelite(CFG.alcance, generacion).catch(e => { console.error(e); toast('No se pudo bajar la imagen satelital.'); }); }
@@ -822,7 +836,7 @@ function seleccionarEtiquetas(t) {
     }
     // dataciones y fósiles: los 4 más cercanos que se ven (a menos de 8 km), para no tapar el paisaje
     const sp5 = { x: 0, y: 0 }, c0 = camera.position, cerca = [];
-    ESC.pins.forEach((p, i) => {
+    if (CFG.pins) ESC.pins.forEach((p, i) => {
       if (!p.pos) return;
       const d = Math.hypot(p.pos.x - c0.x, p.pos.z - c0.z);
       if (d > 8000 || !enPantalla(p.pos, sp5) || sp5.y < 70 || sp5.y > VH() - 150) return;
@@ -1551,7 +1565,16 @@ function iniciarUI() {
     if (b.id === 'calib-listo') { alternarCalibrar(false); toast(`🎯 Listo: relieve ×${nf1.format(relieveX())}. Queda guardado en este teléfono.`, 4000); return; }
     fijarRelieve(relieveX() * (+b.dataset.x > 0 ? 1.05 : 1 / 1.05));
   };
-  $('#btn-ajustes').onclick = () => $('#ajustes').classList.toggle('abierto');
+  // paneles laterales: uno a la vez
+  const panel = id => {
+    for (const [p, b] of [['#capas', '#btn-capa'], ['#ajustes', '#btn-ajustes']]) {
+      const abrir = p === id && !$(p).classList.contains('abierto');
+      $(p).classList.toggle('abierto', abrir); $(b).classList.toggle('activo', abrir); $(b).setAttribute('aria-expanded', abrir);
+    }
+  };
+  $('#btn-ajustes').onclick = () => panel('#ajustes');
+  $('#btn-capa').onclick = () => { actualizarInfoDetalle(); panel('#capas'); };
+  $('#escena').addEventListener('pointerdown', e => { if (!e.target.closest('.panel, .lateral')) panel(null); });
   $('#ficha-cerrar').onclick = cerrarFicha;
   $('#ficha').addEventListener('click', e => { if (e.target.id === 'ficha') cerrarFicha(); });
   $('#mirando').onclick = () => { if (!miraActual) return; if (miraActual.cod) abrirFicha(miraActual.cod); else if (miraActual.falla != null) abrirFichaFalla(miraActual.falla); };
@@ -1568,9 +1591,12 @@ function iniciarUI() {
   cP.onchange = () => { CFG.perfil = cP.checked; guardar('perfil', cP.checked ? '1' : '0'); if (grupoPerfil) grupoPerfil.visible = CFG.perfil || calibrando; };
   const cC = $('#c-cumbres'); cC.checked = CFG.cumbres;
   cC.onchange = () => { CFG.cumbres = cC.checked; guardar('cumbres', cC.checked ? '1' : '0'); };
-  $('#s-capa').value = CFG.capa; $('#btn-capa').classList.toggle('activo', CFG.capa > 0);
-  $('#s-capa').onchange = e => fijarCapa(+e.target.value);
-  $('#btn-capa').onclick = () => { const c = (CFG.capa + 1) % 3; fijarCapa(c); toast(CAPAS[c] + (c ? ' · la transparencia se regula en ⚙️ Opciones' : ''), 2500); };
+  $('#fondos').onclick = e => { const b = e.target.closest('[data-capa]'); if (b) fijarCapa(+b.dataset.capa); };
+  fijarCapa(CFG.capa);
+  const cD = $('#c-detalle'); cD.checked = CFG.detalle;
+  cD.onchange = () => { CFG.detalle = cD.checked; guardar('detalle', cD.checked ? '1' : '0'); actualizarInfoDetalle(); if (O) abrirEn(O.lat, O.lon, ESC.modo, VISTA.yaw); };
+  const cPi = $('#c-pins'); cPi.checked = CFG.pins;
+  cPi.onchange = () => { CFG.pins = cPi.checked; guardar('pins', cPi.checked ? '1' : '0'); actualizarInfoDetalle(); };
   const sA = $('#s-alcance'); sA.value = CFG.alcance;
   sA.onchange = () => { CFG.alcance = +sA.value; guardar('alcance', sA.value); if (O) abrirEn(O.lat, O.lon, ESC.modo, VISTA.yaw); };
   $('#btn-reset').onclick = () => { S.yawUsuario = 0; S.pitchUsuario = 0; S.iosCongelado = false; CFG.fovLargo = FOV_DEF; rFov.value = FOV_DEF; guardar('yaw', 0); guardar('pitch', 0); guardar('fov', FOV_DEF); ajustarTamano(); toast('Ajuste restablecido.'); };

@@ -71,6 +71,27 @@ body:not([data-modo="ar"]) #cam, body:not([data-modo="ar"]) .solo-ar { display: 
 .panel label.fila { flex-direction: row; align-items: center; gap: 8px; }
 .panel input[type=range] { width: 100%; }
 .panel select { background: #1b2635; color: var(--texto); border: 1px solid var(--borde); border-radius: 8px; padding: 6px; }
+/* panel de capas: fondos con miniatura + interruptores */
+#capas { gap: 8px; max-height: calc(100% - 140px - var(--seg)); overflow-y: auto; }
+.panel h4 { margin: 4px 0 0; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); }
+.fondos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.fondos button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 2px 6px; font-size: 11px; line-height: 1.15;
+  background: none; border: 2px solid transparent; border-radius: 10px; color: var(--suave); }
+.fondos button.activo { border-color: #2f8cff; color: var(--texto); font-weight: 650; }
+.mini { display: block; width: 100%; aspect-ratio: 4 / 3; border-radius: 7px; border: 1px solid var(--borde); }
+.mini.geo { background: linear-gradient(160deg, #f2c27b 0 30%, #d06ab8 30% 55%, #8a6a3e 55% 78%, #ffe873 78%); }
+.mini.sat { background: linear-gradient(170deg, #9aa4a9 0 22%, #6f6a5f 22% 50%, #4f5a3c 50% 75%, #3b4630 75%); }
+.mini.mix { background: linear-gradient(170deg, #9aa4a9 0 22%, #6f6a5f 22% 50%, #4f5a3c 50% 75%, #3b4630 75%), linear-gradient(160deg, #f2c27b 0 30%, #d06ab8 30% 55%, #8a6a3e 55% 78%, #ffe873 78%);
+  background-blend-mode: overlay; }
+.panel label.interr { flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 2px; border-bottom: 1px solid rgba(255,255,255,.06); cursor: pointer; }
+.interr span { display: flex; flex-direction: column; line-height: 1.2; }
+.interr small { font-size: 11px; color: var(--suave); }
+.interr.apagado { opacity: .45; }
+.interr input { appearance: none; -webkit-appearance: none; flex: none; width: 40px; height: 24px; border-radius: 12px; background: #3a4656; position: relative; margin: 0; cursor: pointer; transition: background .2s; }
+.interr input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .2s; }
+.interr input:checked { background: #2f8cff; }
+.interr input:checked::after { transform: translateX(16px); }
+.interr input:disabled { cursor: default; }
 
 /* mira central */
 #mira { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border: 2px solid rgba(255,255,255,.9);

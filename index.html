@@ -64,23 +64,33 @@
 
   <div class="lateral">
     <button id="btn-calibrar" class="ico solo-ar" aria-label="Ajustar alineación">🎯<small>Ajustar</small></button>
-    <button id="btn-capa" class="ico" aria-label="Cambiar capa: geología o satelital">🛰️<small>Capa</small></button>
+    <button id="btn-capa" class="ico" aria-label="Capas: qué se dibuja sobre los cerros" aria-expanded="false">🗺️<small>Capas</small></button>
     <button id="btn-ajustes" class="ico" aria-label="Opciones">⚙️<small>Opciones</small></button>
     <div id="dial-op" class="dial-op" role="slider" tabindex="0" aria-label="Transparencia de la capa" aria-valuemin="15" aria-valuemax="95">
       <span class="d-ico" aria-hidden="true">◐</span><div class="d-pista"><i class="d-relleno"></i><b class="d-perilla"></b></div><small id="dial-val">50 %</small></div>
   </div>
 
-  <div id="ajustes" class="panel">
-    <label>Capa sobre los cerros
-      <select id="s-capa"><option value="0">🪨 Mapa geológico</option><option value="1">🛰️ Imagen satelital 3D</option><option value="2">🛰️ Satelital + geología</option></select></label>
-    <label>Transparencia del mapa <input id="r-opacidad" type="range" min="0.15" max="0.95" step="0.05"></label>
+  <div id="capas" class="panel" role="dialog" aria-label="Capas">
+    <h4>Fondo sobre los cerros</h4>
+    <div class="fondos" id="fondos">
+      <button data-capa="0"><i class="mini geo"></i>Geología</button>
+      <button data-capa="1"><i class="mini sat"></i>Satélite</button>
+      <button data-capa="2"><i class="mini mix"></i>Satélite + geología</button>
+    </div>
+    <h4>Mostrar</h4>
+    <label class="interr" id="fila-detalle"><span>🗺️ Mapa detallado 1:50.000<small id="detalle-info">no hay en esta zona</small></span><input id="c-detalle" type="checkbox"></label>
+    <label class="interr"><span>⚡ Fallas</span><input id="c-fallas" type="checkbox"></label>
+    <label class="interr"><span>🏷️ Etiquetas de las rocas</span><input id="c-etiquetas" type="checkbox"></label>
+    <label class="interr"><span>⏳ Dataciones y fósiles</span><input id="c-pins" type="checkbox"></label>
+    <label class="interr"><span>⛰️ Nombres de cumbres</span><input id="c-cumbres" type="checkbox"></label>
+    <label class="interr"><span>〰️ Perfil de los cerros<small>líneas blancas</small></span><input id="c-perfil" type="checkbox"></label>
+    <label>Transparencia <input id="r-opacidad" type="range" min="0.15" max="0.95" step="0.05"></label>
+  </div>
+
+  <div id="ajustes" class="panel" role="dialog" aria-label="Opciones">
     <label class="solo-ar">Tamaño del dibujo (campo visual) <input id="r-fov" type="range" min="18" max="110" step="0.5"></label>
     <label>Alcance
       <select id="s-alcance"><option value="10000">10 km</option><option value="25000">25 km</option><option value="40000">40 km</option></select></label>
-    <label class="fila"><input id="c-perfil" type="checkbox"> Perfil de los cerros (líneas blancas)</label>
-    <label class="fila"><input id="c-cumbres" type="checkbox"> Nombres de cumbres</label>
-    <label class="fila"><input id="c-fallas" type="checkbox"> Fallas activas</label>
-    <label class="fila"><input id="c-etiquetas" type="checkbox"> Etiquetas</label>
     <button id="btn-reset" class="btn chico solo-ar">Restablecer ajuste</button>
   </div>
 
