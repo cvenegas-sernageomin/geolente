@@ -343,7 +343,7 @@ varying vec2 vUv; varying float vDist; varying vec3 vN;
 void main(){ vUv = uv; vN = normal; vec4 wp = modelMatrix * vec4(position,1.0);
   vDist = length(wp.xz - cameraPosition.xz); gl_Position = projectionMatrix * viewMatrix * wp; }`;
 const FS = `
-uniform sampler2D mapa, sat, det0, det1; uniform vec4 b0, b1; uniform float nDet;
+uniform sampler2D mapa, sat, satC, det0, det1; uniform vec4 b0, b1, bc; uniform float nDet, nSatC;
 uniform float opacidad, fadeCerca, fadeLejos, modoAR, soloProf, alcance, capa; uniform vec3 luz, cielo;
 varying vec2 vUv; varying float vDist; varying vec3 vN;
 // mapa detallado encima del 1:1M, dentro de su rectángulo b = (u0, v0, u1, v1)
@@ -363,6 +363,11 @@ void main(){
   float sh = clamp(dot(normalize(vN), luz), 0.0, 1.0);
   float fade = (modoAR > 0.5 ? smoothstep(fadeCerca, fadeLejos, vDist) : 1.0) * (1.0 - smoothstep(alcance*0.88, alcance, max(abs(vUv.x-0.5), abs(vUv.y-0.5))*2.0*alcance));
   vec3 s = texture2D(sat, vUv).rgb; // capas 1 y 2: foto satelital drapeada sobre el relieve (ya trae sus propias sombras)
+  if (nSatC > 0.5) { // cerca de la cámara, la textura fina; se funde con la gruesa en el borde
+    vec2 q = (vUv - bc.xy) / (bc.zw - bc.xy);
+    float w = smoothstep(0.0, 0.08, min(min(q.x, q.y), min(1.0 - q.x, 1.0 - q.y)));
+    if (w > 0.0) s = mix(s, texture2D(satC, q).rgb, w);
+  }
   if (modoAR > 0.5) {
     if (capa > 0.5) {
       float a = opacidad * fade; if (a < 0.02) discard;
@@ -424,21 +429,22 @@ function pintarDetalle(A) {
   }).filter(Boolean);
 }
 
-// Imagen satelital (Esri World Imagery, CORS abierto): mosaico de teselas dibujado en el mismo cuadrado ±A que el mapa.
+// Imagen satelital (Esri World Imagery, CORS abierto): mosaico de teselas dibujado en un rectángulo del marco local.
 // Dentro de una tesela la diferencia entre Mercator y el marco local es despreciable, así que basta con drawImage por tesela.
-async function cargarSatelite(A, gen) {
-  const S = Math.min(4096, renderer.capabilities.maxTextureSize), mpp = 2 * A / S;
-  const [lonW, latS] = aLL(-A, -A), [lonE, latN] = aLL(A, A);
-  let z = Math.min(16, Math.max(10, Math.round(Math.log2(40075016.7 * Math.cos(O.lat * Math.PI / 180) / 256 / mpp))));
+// Dos texturas: una para todo el alcance (~15 m/px con 25 km) y otra de ±3 km alrededor de la cámara (~2 m/px), que es lo que se ve de cerca.
+const SAT_CERCA = 3000;
+async function mosaicoSat(e0, e1, n0, n1, S, zMax, maxTeselas, gen, avance) {
+  const mpp = (e1 - e0) / S, [lonW, latS] = aLL(e0, n0), [lonE, latN] = aLL(e1, n1);
+  let z = Math.min(zMax, Math.max(10, Math.round(Math.log2(40075016.7 * Math.cos(O.lat * Math.PI / 180) / 256 / mpp))));
   const rango = z => [Math.floor(lon2tx(lonW, z)), Math.floor(lon2tx(lonE, z)), Math.floor(lat2ty(latN, z)), Math.floor(lat2ty(latS, z))];
   let [x0, x1, y0, y1] = rango(z);
-  while ((x1 - x0 + 1) * (y1 - y0 + 1) > 300 && z > 10) [x0, x1, y0, y1] = rango(--z);
+  while ((x1 - x0 + 1) * (y1 - y0 + 1) > maxTeselas && z > 10) [x0, x1, y0, y1] = rango(--z);
   const cv = document.createElement('canvas'); cv.width = cv.height = S;
   const ctx = cv.getContext('2d'); ctx.fillStyle = '#8a8478'; ctx.fillRect(0, 0, S, S);
-  const px = (lon, lat) => { const [e, n] = aEN(lon, lat); return [(e + A) / (2 * A) * S, (A - n) / (2 * A) * S]; };
+  const px = (lon, lat) => { const [e, n] = aEN(lon, lat); return [(e - e0) / (e1 - e0) * S, (n1 - n) / (n1 - n0) * S]; };
   const tx2lon = x => x / 2 ** z * 360 - 180, ty2lat = y => Math.atan(Math.sinh(Math.PI * (1 - 2 * y / 2 ** z))) * 180 / Math.PI;
   const tareas = []; for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) tareas.push([x, y]);
-  let hechas = 0, fallidas = 0;
+  let fallidas = 0, hechas = 0;
   await Promise.all(tareas.map(async ([x, y]) => {
     try {
       const r = await fetch(`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`);
@@ -447,15 +453,33 @@ async function cargarSatelite(A, gen) {
       const [a, b] = px(tx2lon(x), ty2lat(y)), [c, d] = px(tx2lon(x + 1), ty2lat(y + 1));
       ctx.drawImage(img, a, b, c - a + 0.6, d - b + 0.6); img.close?.();
     } catch { fallidas++; }
-    if (gen === generacion && ++hechas % 12 === 0) toast(`🛰️ Bajando imagen satelital… ${Math.round(hechas / tareas.length * 100)} %`, 1500);
+    avance?.(++hechas, tareas.length);
   }));
-  if (gen !== generacion) return;
+  if (gen !== generacion) return null;
   const t = new THREE.CanvasTexture(cv);
   t.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter;
-  texSat = t;
-  for (const m of [terrenoColor, terrenoProf]) if (m) { m.material.uniforms.sat.value = t; m.material.uniforms.capa.value = CFG.capa; }
-  toast(fallidas ? `🛰️ Imagen satelital lista (faltaron ${fallidas} de ${tareas.length} teselas)` : '🛰️ Imagen satelital lista · Esri, Maxar, Earthstar Geographics', 3500);
+  t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  return { t, fallidas, n: tareas.length };
+}
+let satCerca = null; // { t, e, n }: textura fina y su centro
+async function cargarSatCerca(e, n, gen) {
+  const A = CFG.alcance, R = Math.min(SAT_CERCA, A), S = Math.min(3072, renderer.capabilities.maxTextureSize);
+  const r = await mosaicoSat(e - R, e + R, n - R, n + R, S, 17, 200, gen);
+  if (!r) return;
+  satCerca?.t.dispose();
+  const bc = new THREE.Vector4((e - R + A) / (2 * A), (n - R + A) / (2 * A), (e + R + A) / (2 * A), (n + R + A) / (2 * A));
+  satCerca = { t: r.t, e, n, bc };
+  for (const m of [terrenoColor, terrenoProf]) if (m) { const u = m.material.uniforms; u.satC.value = r.t; u.bc.value = bc; u.nSatC.value = 1; }
+}
+async function cargarSatelite(A, gen) {
+  const S = Math.min(4096, renderer.capabilities.maxTextureSize);
+  const cerca = cargarSatCerca(camera.position.x, -camera.position.z, gen);
+  const r = await mosaicoSat(-A, A, -A, A, S, 16, 300, gen, (k, n) => { if (gen === generacion && k % 12 === 0) toast(`🛰️ Bajando imagen satelital… ${Math.round(k / n * 100)} %`, 1500); });
+  if (!r) return;
+  texSat = r.t;
+  for (const m of [terrenoColor, terrenoProf]) if (m) { m.material.uniforms.sat.value = r.t; m.material.uniforms.capa.value = CFG.capa; }
+  await cerca;
+  toast(r.fallidas ? `🛰️ Imagen satelital lista (faltaron ${r.fallidas} de ${r.n} teselas)` : '🛰️ Imagen satelital lista · Esri, Maxar, Earthstar Geographics', 3500);
 }
 let cargandoSat = 0;
 function fijarCapa(c) {
@@ -486,7 +510,7 @@ function construirTerreno(A) {
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   g.setIndex(idx); g.computeVertexNormals();
   const uni = () => ({
-    mapa: { value: texMapa }, sat: { value: texSat || texVacia }, capa: { value: texSat ? CFG.capa : 0 }, opacidad: { value: CFG.opacidad }, fadeCerca: { value: CFG.fadeCerca }, fadeLejos: { value: CFG.fadeLejos },
+    mapa: { value: texMapa }, sat: { value: texSat || texVacia }, satC: { value: satCerca?.t || texVacia }, bc: { value: satCerca?.bc || new THREE.Vector4() }, nSatC: { value: satCerca ? 1 : 0 }, capa: { value: texSat ? CFG.capa : 0 }, opacidad: { value: CFG.opacidad }, fadeCerca: { value: CFG.fadeCerca }, fadeLejos: { value: CFG.fadeLejos },
     det0: { value: texDet[0]?.t || texVacia }, det1: { value: texDet[1]?.t || texVacia }, nDet: { value: Math.min(2, texDet.length) },
     b0: { value: new THREE.Vector4(...(texDet[0]?.uv || [0, 0, 1, 1])) }, b1: { value: new THREE.Vector4(...(texDet[1]?.uv || [0, 0, 1, 1])) },
     modoAR: { value: ESC.modo === 'ar' ? 1 : 0 }, soloProf: { value: 0 }, alcance: { value: A },
@@ -1165,7 +1189,7 @@ async function abrirEn(lat, lon, modo, rumbo = 0, nombre = null) {
   $('#inicio').hidden = true; $('#escena').hidden = false;
   if (!renderer) iniciarThree();
   for (const o of [terrenoColor, terrenoProf, grupoFallas, grupoPerfil, terrenoLejos]) if (o) { scene.remove(o); o.traverse?.(x => { x.geometry?.dispose(); x.material?.dispose(); }); }
-  texMapa?.dispose(); texSat?.dispose(); texSat = null; cargandoSat = 0;
+  texMapa?.dispose(); texSat?.dispose(); texSat = null; cargandoSat = 0; satCerca?.t.dispose(); satCerca = null;
   for (const d of texDet) d.t.dispose(); texDet = []; sombraPlano = null;
   for (const [, e] of ETQ) e.el.remove(); ETQ.clear();
   try {
@@ -1689,6 +1713,7 @@ function irA(e, n, yaw) {
   camera.position.set(e, hLocal(e, n) + CFG.altura, -n);
   VISTA.yaw = yaw; VISTA.pitch = -2;
   calcularPerfil(generacion); ultimaSeleccion = 0;
+  if (texSat && (!satCerca || Math.hypot(e - satCerca.e, n - satCerca.n) > SAT_CERCA * 0.4)) cargarSatCerca(e, n, generacion).catch(console.error);
   $('#lugar').textContent = 'Punto elegido en el plano';
 }
 function zoomPlano(factor, x, y) { // zoom manteniendo fijo el punto (x, y) del canvas
