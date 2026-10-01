@@ -51,6 +51,17 @@ body:not([data-modo="ar"]) #cam, body:not([data-modo="ar"]) .solo-ar { display: 
 #btn-volver { font-size: 28px; line-height: 1; }
 .lateral { position: absolute; right: 10px; top: calc(64px + var(--seg)); display: flex; flex-direction: column; gap: 8px; }
 .lateral .ico { height: 52px; min-width: 56px; }
+/* dial de transparencia a mano: arriba = capa fuerte, abajo = más transparente (mismo valor que el de ⚙️ Opciones) */
+.dial-op { width: 56px; padding: 8px 0 6px; border: 1px solid var(--borde); border-radius: 12px; background: var(--panel);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: flex; flex-direction: column; align-items: center; gap: 6px;
+  touch-action: none; user-select: none; -webkit-user-select: none; cursor: ns-resize; }
+.dial-op .d-ico { font-size: 15px; line-height: 1; opacity: .85; }
+.dial-op .d-pista { position: relative; width: 8px; height: 132px; border-radius: 4px; background: rgba(255,255,255,.16); }
+.dial-op .d-relleno { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 4px; background: linear-gradient(#ffd23f, #2f8cff); }
+.dial-op .d-perilla { position: absolute; left: 50%; width: 24px; height: 24px; margin: 0 0 -12px -12px; border-radius: 50%; background: #fff;
+  border: 3px solid #2f8cff; box-shadow: 0 1px 6px rgba(0,0,0,.5); }
+.dial-op.arrastrando .d-perilla { transform: scale(1.2); }
+.dial-op small { font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
 .panel { position: absolute; right: 74px; top: calc(64px + var(--seg)); width: min(290px, calc(100% - 90px)); background: var(--panel);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--borde); border-radius: 14px; padding: 12px;
@@ -267,6 +278,7 @@ body.virt90 #compas,body.virt-90 #compas { left: 72%; bottom: calc(6px + var(--s
 body.virt90 #compas-num,body.virt-90 #compas-num { left: 72%; bottom: calc(56px + var(--sib)); }
 body.virt90 #compas-num b,body.virt-90 #compas-num b { font-size: 16px; }
 body.virt90 #pisando,body.virt-90 #pisando { display: none; }
+body.virt90 .dial-op .d-pista,body.virt-90 .dial-op .d-pista { height: 80px; }
 body.calibrando.virt90 #compas,body.calibrando.virt-90 #compas { bottom: calc(6px + var(--sib)); }
 body.calibrando.virt90 #compas-num,body.calibrando.virt-90 #compas-num { left: 72%; bottom: calc(56px + var(--sib)); }
 body.virt90 #calib-panel,body.virt-90 #calib-panel { bottom: calc(66px + var(--sib)); }
@@ -277,6 +289,7 @@ body.virt90 .calib-aviso,body.virt-90 .calib-aviso { top: 58px; right: 90px; fon
 #compas-num { left: 72%; bottom: calc(56px + var(--sib)); }
 #compas-num b { font-size: 16px; }
 #pisando { display: none; }
+.dial-op .d-pista { height: 80px; }
 body.calibrando #compas { bottom: calc(6px + var(--sib)); }
 body.calibrando #compas-num { left: 72%; bottom: calc(56px + var(--sib)); }
 #calib-panel { bottom: calc(66px + var(--sib)); }

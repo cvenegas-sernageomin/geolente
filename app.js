@@ -1161,7 +1161,7 @@ function pasoEscala(sinCumbre) {
 function instalarGestos() {
   const el = $('#escena'); let arr = null, pinza = null;
   el.addEventListener('pointerdown', e => {
-    if (e.target.closest('.etq, button, #ficha, .panel, #mirando, #pisando, #compas, #calib-panel')) return;
+    if (e.target.closest('.etq, button, #ficha, .panel, #mirando, #pisando, #compas, #calib-panel, .dial-op')) return;
     const conSensores = ESC.modo === 'ar' && S.tiene;
     const q = aVirtual(e.clientX, e.clientY);
     arr = { x: q.x, y: q.y, yaw: conSensores ? S.yawUsuario : VISTA.yaw, pitch: conSensores ? S.pitchUsuario : VISTA.pitch, x0: relieveX() };
@@ -1196,6 +1196,43 @@ function instalarGestos() {
     else { CFG.fovExplorar = Math.max(15, Math.min(80, pinza.f * r)); ajustarTamano(); }
   }, { passive: true });
   el.addEventListener('touchend', () => { if (pinza) guardar('fov', CFG.fovLargo); pinza = null; });
+}
+// Transparencia de la capa: el deslizador de ⚙️ Opciones y el dial lateral muestran el mismo valor (opacidad 0,15–0,95)
+const OP_MIN = 0.15, OP_MAX = 0.95;
+function fijarOpacidad(v) {
+  v = Math.min(OP_MAX, Math.max(OP_MIN, Math.round(v * 100) / 100));
+  CFG.opacidad = v; guardar('opacidad', v); $('#r-opacidad').value = v;
+  if (terrenoColor) terrenoColor.material.uniforms.opacidad.value = calibrando ? Math.min(0.2, v) : v;
+  const f = (v - OP_MIN) / (OP_MAX - OP_MIN), d = $('#dial-op');
+  d.querySelector('.d-relleno').style.height = f * 100 + '%';
+  d.querySelector('.d-perilla').style.bottom = f * 100 + '%';
+  $('#dial-val').textContent = Math.round(v * 100) + ' %';
+  d.setAttribute('aria-valuenow', Math.round(v * 100));
+}
+// arrastre relativo (sirve igual con la interfaz girada en horizontal): subir = capa más fuerte; tocar la pista salta ahí
+function instalarDialOpacidad() {
+  const d = $('#dial-op'), pista = d.querySelector('.d-pista'); let ini = null;
+  d.addEventListener('pointerdown', e => {
+    e.stopPropagation(); d.setPointerCapture(e.pointerId); d.classList.add('arrastrando');
+    const q = aVirtual(e.clientX, e.clientY);
+    let v0 = CFG.opacidad;
+    if (e.target.closest('.d-pista') && !e.target.closest('.d-perilla')) {
+      const r = pista.getBoundingClientRect(), c = aVirtual(r.left + r.width / 2, r.top + r.height / 2);
+      fijarOpacidad(OP_MIN + (0.5 + (c.y - q.y) / pista.offsetHeight) * (OP_MAX - OP_MIN)); v0 = CFG.opacidad;
+    }
+    ini = { y: q.y, v: v0 };
+  });
+  d.addEventListener('pointermove', e => {
+    if (!ini) return;
+    const q = aVirtual(e.clientX, e.clientY);
+    fijarOpacidad(ini.v + (ini.y - q.y) / pista.offsetHeight * (OP_MAX - OP_MIN));
+  });
+  const fin = () => { ini = null; d.classList.remove('arrastrando'); };
+  d.addEventListener('pointerup', fin); d.addEventListener('pointercancel', fin);
+  d.addEventListener('keydown', e => {
+    const k = { ArrowUp: 0.05, ArrowRight: 0.05, ArrowDown: -0.05, ArrowLeft: -0.05 }[e.key];
+    if (k) { e.preventDefault(); fijarOpacidad(CFG.opacidad + k); }
+  });
 }
 function alternarCalibrar(on = !calibrando) {
   calibrando = on; document.body.classList.toggle('calibrando', on);
@@ -1367,7 +1404,8 @@ function iniciarUI() {
   $('#ficha').addEventListener('click', e => { if (e.target.id === 'ficha') cerrarFicha(); });
   $('#mirando').onclick = () => { if (!miraActual) return; if (miraActual.cod) abrirFicha(miraActual.cod); else if (miraActual.falla != null) abrirFichaFalla(miraActual.falla); };
   const rOp = $('#r-opacidad'); rOp.value = CFG.opacidad;
-  rOp.oninput = () => { CFG.opacidad = +rOp.value; guardar('opacidad', rOp.value); if (terrenoColor) terrenoColor.material.uniforms.opacidad.value = CFG.opacidad; };
+  rOp.oninput = () => fijarOpacidad(+rOp.value);
+  instalarDialOpacidad(); fijarOpacidad(CFG.opacidad);
   const rFov = $('#r-fov'); rFov.value = CFG.fovLargo;
   rFov.oninput = () => { CFG.fovLargo = +rFov.value; guardar('fov', rFov.value); ajustarTamano(); };
   const cF = $('#c-fallas'); cF.checked = CFG.fallas;
