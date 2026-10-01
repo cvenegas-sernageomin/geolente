@@ -1,6 +1,6 @@
 // GeoLente: caché propia. Comparte origen con otras PWAs en github.io, así que SOLO borra cachés "geolente-*".
-const VER = 'geolente-v15';
-const CACHE_APP = VER, CACHE_GEO = 'geolente-geo', CACHE_DEM = 'geolente-dem';
+const VER = 'geolente-v16';
+const CACHE_APP = VER, CACHE_GEO = 'geolente-geo', CACHE_DEM = 'geolente-dem', CACHE_SAT = 'geolente-sat';
 const APP = ['./', 'index.html', 'estilo.css', 'app.js', 'contenido.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png',
   'vendor/three/three.module.min.js', 'vendor/three/three.core.js', 'vendor/three/lines/Line2.js', 'vendor/three/lines/LineGeometry.js',
   'vendor/three/lines/LineMaterial.js', 'vendor/three/lines/LineSegments2.js', 'vendor/three/lines/LineSegmentsGeometry.js',
@@ -13,6 +13,7 @@ self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
   if (e.request.method !== 'GET') return;
   const runtime = u.hostname === 's3.amazonaws.com' && u.pathname.startsWith('/elevation-tiles-prod/') ? CACHE_DEM
+    : u.hostname === 'server.arcgisonline.com' && u.pathname.includes('/World_Imagery/') ? CACHE_SAT
     : (u.origin === location.origin && u.pathname.includes('/data/geo/')) ? CACHE_GEO : null;
   if (runtime) {
     e.respondWith(caches.open(runtime).then(async c => {

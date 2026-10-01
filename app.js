@@ -18,7 +18,9 @@ const CFG = {
   fovLargo: +(leer('fov') || FOV_DEF), // FOV de la cámara del teléfono en su lado largo (grados); se calibra en 🎯 paso 2
   fallas: leer('fallas') !== '0', etiquetas: leer('etiquetas') !== '0',
   perfil: leer('perfil') !== '0', cumbres: leer('cumbres') !== '0',
+  capa: +(leer('capa') || 0), // 0 = mapa geológico, 1 = imagen satelital, 2 = satelital + geología
 };
+const CAPAS = ['🪨 Mapa geológico', '🛰️ Imagen satelital', '🛰️ Satelital + geología'];
 
 export const LUGARES = [
   { n: 'Baños Morales · Cajón del Maipo', ico: '🌋', d: 'El volcán San José y el Morado a pocos kilómetros, con 13 unidades geológicas en 10 km a la redonda.', lat: -33.7925, lon: -70.0803, rumbo: 0 },
@@ -246,9 +248,10 @@ function unidadEn(lon, lat) {
 
 // ------------------------------------------------------------------ escena three.js
 const ESC = { polys: [], fallas: [], cand: [], candF: [], listo: false, modo: 'explorar' };
-let renderer, scene, camera, terrenoColor, terrenoProf, grupoFallas, texMapa;
+let renderer, scene, camera, terrenoColor, terrenoProf, grupoFallas, texMapa, texSat = null, texVacia;
 
 function iniciarThree() {
+  texVacia = new THREE.DataTexture(new Uint8Array([138, 132, 120, 255]), 1, 1); texVacia.needsUpdate = true;
   renderer = new THREE.WebGLRenderer({ canvas: $('#gl'), antialias: true, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setClearColor(0x000000, 0);
@@ -284,7 +287,7 @@ varying vec2 vUv; varying float vDist; varying vec3 vN;
 void main(){ vUv = uv; vN = normal; vec4 wp = modelMatrix * vec4(position,1.0);
   vDist = length(wp.xz - cameraPosition.xz); gl_Position = projectionMatrix * viewMatrix * wp; }`;
 const FS = `
-uniform sampler2D mapa; uniform float opacidad, fadeCerca, fadeLejos, modoAR, soloProf, alcance; uniform vec3 luz, cielo;
+uniform sampler2D mapa, sat; uniform float opacidad, fadeCerca, fadeLejos, modoAR, soloProf, alcance, capa; uniform vec3 luz, cielo;
 varying vec2 vUv; varying float vDist; varying vec3 vN;
 void main(){
   if (modoAR > 0.5 && vDist < fadeCerca) discard;
@@ -292,7 +295,13 @@ void main(){
   vec4 t = texture2D(mapa, vUv);
   float sh = clamp(dot(normalize(vN), luz), 0.0, 1.0);
   float fade = (modoAR > 0.5 ? smoothstep(fadeCerca, fadeLejos, vDist) : 1.0) * (1.0 - smoothstep(alcance*0.88, alcance, max(abs(vUv.x-0.5), abs(vUv.y-0.5))*2.0*alcance));
+  vec3 s = texture2D(sat, vUv).rgb; // capas 1 y 2: foto satelital drapeada sobre el relieve (ya trae sus propias sombras)
   if (modoAR > 0.5) {
+    if (capa > 0.5) {
+      float a = opacidad * fade; if (a < 0.02) discard;
+      gl_FragColor = vec4(capa > 1.5 ? mix(s, t.rgb, t.a * 0.5) : s, a);
+      return;
+    }
     float a = t.a * opacidad * fade; if (a < 0.02) discard;
     vec3 cc = mix(vec3(dot(t.rgb, vec3(0.299,0.587,0.114))), t.rgb, 0.82);
     gl_FragColor = vec4(cc, a);
@@ -300,6 +309,7 @@ void main(){
     vec3 base = vec3(0.60, 0.57, 0.52);
     vec3 tc = mix(vec3(dot(t.rgb, vec3(0.299,0.587,0.114))), t.rgb, 0.8);
     vec3 c = mix(base, tc, t.a * (0.35 + 0.65 * opacidad)) * (0.38 + 0.8 * sh);
+    if (capa > 0.5) c = mix(s, tc, capa > 1.5 ? t.a * opacidad : 0.0) * (0.8 + 0.3 * sh);
     float niebla = smoothstep(alcance * 0.15, alcance * 1.1, vDist) * 0.55;
     gl_FragColor = vec4(mix(c, cielo, niebla), 1.0);
   }
@@ -333,6 +343,51 @@ function pintarTextura(A) {
   return t;
 }
 
+// Imagen satelital (Esri World Imagery, CORS abierto): mosaico de teselas dibujado en el mismo cuadrado ±A que el mapa.
+// Dentro de una tesela la diferencia entre Mercator y el marco local es despreciable, así que basta con drawImage por tesela.
+async function cargarSatelite(A, gen) {
+  const S = Math.min(4096, renderer.capabilities.maxTextureSize), mpp = 2 * A / S;
+  const [lonW, latS] = aLL(-A, -A), [lonE, latN] = aLL(A, A);
+  let z = Math.min(16, Math.max(10, Math.round(Math.log2(40075016.7 * Math.cos(O.lat * Math.PI / 180) / 256 / mpp))));
+  const rango = z => [Math.floor(lon2tx(lonW, z)), Math.floor(lon2tx(lonE, z)), Math.floor(lat2ty(latN, z)), Math.floor(lat2ty(latS, z))];
+  let [x0, x1, y0, y1] = rango(z);
+  while ((x1 - x0 + 1) * (y1 - y0 + 1) > 300 && z > 10) [x0, x1, y0, y1] = rango(--z);
+  const cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const ctx = cv.getContext('2d'); ctx.fillStyle = '#8a8478'; ctx.fillRect(0, 0, S, S);
+  const px = (lon, lat) => { const [e, n] = aEN(lon, lat); return [(e + A) / (2 * A) * S, (A - n) / (2 * A) * S]; };
+  const tx2lon = x => x / 2 ** z * 360 - 180, ty2lat = y => Math.atan(Math.sinh(Math.PI * (1 - 2 * y / 2 ** z))) * 180 / Math.PI;
+  const tareas = []; for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) tareas.push([x, y]);
+  let hechas = 0, fallidas = 0;
+  await Promise.all(tareas.map(async ([x, y]) => {
+    try {
+      const r = await fetch(`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`);
+      if (!r.ok) throw new Error(r.status);
+      const img = await createImageBitmap(await r.blob());
+      const [a, b] = px(tx2lon(x), ty2lat(y)), [c, d] = px(tx2lon(x + 1), ty2lat(y + 1));
+      ctx.drawImage(img, a, b, c - a + 0.6, d - b + 0.6); img.close?.();
+    } catch { fallidas++; }
+    if (gen === generacion && ++hechas % 12 === 0) toast(`🛰️ Bajando imagen satelital… ${Math.round(hechas / tareas.length * 100)} %`, 1500);
+  }));
+  if (gen !== generacion) return;
+  const t = new THREE.CanvasTexture(cv);
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter;
+  texSat = t;
+  for (const m of [terrenoColor, terrenoProf]) if (m) { m.material.uniforms.sat.value = t; m.material.uniforms.capa.value = CFG.capa; }
+  toast(fallidas ? `🛰️ Imagen satelital lista (faltaron ${fallidas} de ${tareas.length} teselas)` : '🛰️ Imagen satelital lista · Esri, Maxar, Earthstar Geographics', 3500);
+}
+let cargandoSat = 0;
+function fijarCapa(c) {
+  CFG.capa = c; guardar('capa', c); $('#s-capa').value = c;
+  $('#btn-capa').classList.toggle('activo', c > 0);
+  if (!terrenoColor) return;
+  if (c > 0 && !texSat) {
+    if (cargandoSat !== generacion) { cargandoSat = generacion; cargarSatelite(CFG.alcance, generacion).catch(e => { console.error(e); toast('No se pudo bajar la imagen satelital.'); }); }
+    return;
+  }
+  for (const m of [terrenoColor, terrenoProf]) m.material.uniforms.capa.value = c;
+}
+
 function construirTerreno(A) {
   const N = CFG.nGrid, a = 0.4;
   const s = u => A * u * (a + (1 - a) * Math.abs(u)); // malla más densa cerca del observador
@@ -350,7 +405,7 @@ function construirTerreno(A) {
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   g.setIndex(idx); g.computeVertexNormals();
   const uni = () => ({
-    mapa: { value: texMapa }, opacidad: { value: CFG.opacidad }, fadeCerca: { value: CFG.fadeCerca }, fadeLejos: { value: CFG.fadeLejos },
+    mapa: { value: texMapa }, sat: { value: texSat || texVacia }, capa: { value: texSat ? CFG.capa : 0 }, opacidad: { value: CFG.opacidad }, fadeCerca: { value: CFG.fadeCerca }, fadeLejos: { value: CFG.fadeLejos },
     modoAR: { value: ESC.modo === 'ar' ? 1 : 0 }, soloProf: { value: 0 }, alcance: { value: A },
     luz: { value: new THREE.Vector3(-0.5, 0.75, 0.45).normalize() }, cielo: { value: new THREE.Color(0xbfd6ea) },
   });
@@ -372,7 +427,12 @@ function construirTerrenoLejano() {
     const e = s(-1 + 2 * i / (N - 1)), n = s(-1 + 2 * j / (N - 1)), k = j * N + i;
     pos[k * 3] = e; pos[k * 3 + 1] = hLocal(e, n) - 25; pos[k * 3 + 2] = -n; // 25 m más abajo: el relieve fino manda donde se solapan
   }
-  for (let j = 0; j < N - 1; j++) for (let i = 0; i < N - 1; i++) { const k = j * N + i; idx.push(k, k + 1, k + N, k + 1, k + N + 1, k + N); }
+  // hueco donde está el relieve fino: si no, en circos y quebradas el mosaico grueso (z10) asoma como manchas grises
+  const H = CFG.alcance * 0.98, fuera = k => Math.abs(pos[k * 3]) > H || Math.abs(pos[k * 3 + 2]) > H;
+  for (let j = 0; j < N - 1; j++) for (let i = 0; i < N - 1; i++) {
+    const k = j * N + i;
+    if (fuera(k) || fuera(k + 1) || fuera(k + N) || fuera(k + N + 1)) idx.push(k, k + 1, k + N, k + 1, k + N + 1, k + N);
+  }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
   const nor = g.attributes.normal, col = new Float32Array(N * N * 3), luz = new THREE.Vector3(-0.5, 0.75, 0.45).normalize(), cielo = new THREE.Color(0xbfd6ea);
@@ -941,7 +1001,7 @@ async function abrirEn(lat, lon, modo, rumbo = 0, nombre = null) {
   $('#inicio').hidden = true; $('#escena').hidden = false;
   if (!renderer) iniciarThree();
   for (const o of [terrenoColor, terrenoProf, grupoFallas, grupoPerfil, terrenoLejos]) if (o) { scene.remove(o); o.traverse?.(x => { x.geometry?.dispose(); x.material?.dispose(); }); }
-  texMapa?.dispose();
+  texMapa?.dispose(); texSat?.dispose(); texSat = null; cargandoSat = 0;
   for (const [, e] of ETQ) e.el.remove(); ETQ.clear();
   try {
     cargando('Cargando el mapa geológico…');
@@ -964,6 +1024,7 @@ async function abrirEn(lat, lon, modo, rumbo = 0, nombre = null) {
     await new Promise(r => setTimeout(r, 30));
     texMapa = pintarTextura(A);
     construirTerreno(A);
+    if (CFG.capa) fijarCapa(CFG.capa);
     construirTerrenoLejano();
     construirFallas(A);
     construirCandidatos(A);
@@ -1317,6 +1378,9 @@ function iniciarUI() {
   cP.onchange = () => { CFG.perfil = cP.checked; guardar('perfil', cP.checked ? '1' : '0'); if (grupoPerfil) grupoPerfil.visible = CFG.perfil || calibrando; };
   const cC = $('#c-cumbres'); cC.checked = CFG.cumbres;
   cC.onchange = () => { CFG.cumbres = cC.checked; guardar('cumbres', cC.checked ? '1' : '0'); };
+  $('#s-capa').value = CFG.capa; $('#btn-capa').classList.toggle('activo', CFG.capa > 0);
+  $('#s-capa').onchange = e => fijarCapa(+e.target.value);
+  $('#btn-capa').onclick = () => { const c = (CFG.capa + 1) % 3; fijarCapa(c); toast(CAPAS[c] + (c ? ' · la transparencia se regula en ⚙️ Opciones' : ''), 2500); };
   const sA = $('#s-alcance'); sA.value = CFG.alcance;
   sA.onchange = () => { CFG.alcance = +sA.value; guardar('alcance', sA.value); if (O) abrirEn(O.lat, O.lon, ESC.modo, VISTA.yaw); };
   $('#btn-reset').onclick = () => { S.yawUsuario = 0; S.pitchUsuario = 0; S.iosCongelado = false; CFG.fovLargo = FOV_DEF; rFov.value = FOV_DEF; guardar('yaw', 0); guardar('pitch', 0); guardar('fov', FOV_DEF); ajustarTamano(); toast('Ajuste restablecido.'); };
