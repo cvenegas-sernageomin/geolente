@@ -23,7 +23,7 @@ MAPAS = [
     {'id': 'cc', 'lyr': 'Unidades geológicas_Central_Cipreses_01102026.lyr.json',
      'titulo': 'Central Cipreses (versión preliminar)', 'hoja': 'Geología del área Central Los Cipreses, Región del Maule (versión preliminar)',
      'anno_u': None, 'anno_m': 'Anno_Medidas_estructurales', 'colocar': {'NEW', 'NEW.'},
-     'geocron': None},  # sin campo para elegir cuáles se muestran (falta el .mxd de esta hoja): no se publican
+     'geocron': lambda p: True},  # sin campo DESPLEGAR: todas, salvo las sin edad o con "00±00" (se descartan más abajo)
 ]
 
 DOM = json.load(open(os.path.join(SAL, 'dominios.json'), encoding='utf-8'))
