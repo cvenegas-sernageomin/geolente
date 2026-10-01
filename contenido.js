@@ -15,9 +15,9 @@ export const CATEGORIAS = {
   },
   volcanosedimentaria: {
     ico: '🌋', nombre: 'Volcanes y sedimentos', lema: 'lavas y cenizas intercaladas con sedimentos',
-    que: 'Es una mezcla de productos volcánicos y sedimentos: capas de lava y ceniza intercaladas con areniscas o conglomerados que dejaron ríos, lagos o el mar entre una erupción y otra.',
+    que: 'Es una mezcla de productos volcánicos y sedimentos: capas de lava y ceniza intercaladas con areniscas o conglomerados que dejaron ríos y lagos entre una erupción y otra (en algunas épocas y lugares, también el mar).',
     ver: 'Alternancia de capas de distinto color: lavas oscuras, tobas claras y capas de arenisca o conglomerado.',
-    dato: 'Estas secuencias registran paisajes donde convivían volcanes activos con ríos y mares, como ocurre hoy en el sur de Chile.'
+    dato: 'Estas secuencias registran paisajes donde convivían volcanes activos con ríos y lagos, como ocurre hoy en el sur de Chile.'
   },
   sedimentaria: {
     ico: '🪨', nombre: 'Roca sedimentaria', lema: 'capas de sedimentos compactados',

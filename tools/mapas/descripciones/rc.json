@@ -1,0 +1,178 @@
+{
+  "_fuente": "Textos divulgativos redactados a partir de Venegas, C.; Vásquez, P.; Ramírez, C.; Montecino, D.; Naranjo, J.; Araya, C. 2023. Geología del cuadrángulo Río Claro, región del Maule, Chile. SERNAGEOMIN, Informe Registrado IR-23-110 (inédito), 1 mapa 1:50.000.",
+  "Hl": {
+    "n": "Depósitos lacustres del Holoceno", "e": "Holoceno (hace ~10.700 a 9.400 años)", "ma": [0.0107, 0.0094],
+    "que": "Barros finos que se depositaron en el fondo de pequeñas lagunas que existieron en el valle del río Claro y en quebradas cercanas al Radal, al comienzo del Holoceno. Hoy esas lagunas ya no existen y sus sedimentos quedaron expuestos en las riberas.",
+    "ver": "Paredes de hasta 8 m formadas por capas muy delgadas y horizontales, de colores ocre claro y oscuro, que se repiten como las páginas de un libro.",
+    "dato": "Cada par de capas clara y oscura (una varva) puede representar un año. La materia orgánica atrapada en ellas se dató con carbono-14 en unos 10.700 y 9.400 años."
+  },
+  "Hf": {
+    "n": "Depósitos fluviales del Holoceno", "e": "Holoceno",
+    "que": "Gravas, arenas y limos que los ríos Claro y Blanquillo y sus quebradas transportan y depositan hoy en su lecho y riberas.",
+    "ver": "Bolones y guijarros redondeados, a menudo imbricados (inclinados todos hacia el mismo lado por la corriente), con bancos de arena.",
+    "dato": "La inclinación de los bolones imbricados indica hacia dónde corría el agua que los dejó."
+  },
+  "Hv": {
+    "n": "Volcanes del Holoceno", "e": "Holoceno (últimos ~11.700 años)", "ma": [0.0117, 0],
+    "que": "Lavas y depósitos de erupciones recientes de los volcanes Quillayes, Caracol, La Resolana, Alto Las Mulas, Los Hornitos y Quizapu. Sus conos y coladas están tan bien conservados que casi no han sido erosionados.",
+    "ver": "Coladas de lava de bloques, negras y ásperas, con frentes empinados, y campos de escoria y lapilli gris oscuro alrededor de los conos.",
+    "dato": "Las lavas de los volcanes Los Hornitos represaron la laguna de La Invernada. Uno de estos conos tiene una edad de unos 930 años.",
+    "facies": {
+      "a": "Aquí hay coladas de lava: roca fundida que bajó por las laderas y se enfrió formando lenguas de bloques.",
+      "b": "Aquí hay depósitos piroclásticos: escoria y fragmentos que los volcanes lanzaron al aire y que cayeron alrededor."
+    }
+  },
+  "Hv1846": {
+    "n": "Lavas de la erupción de 1846 del volcán Quizapu", "e": "Erupción de 1846–1847 (actividad hasta ~1853)", "ma": [0.00018, 0.00017], "eg": "Erupción de 1846–1847",
+    "que": "Campo de lavas de bloques que salió del volcán Quizapu en la erupción que comenzó en 1846. Las coladas bajaron unos 20 km hacia el oeste por el valle del río Blanquillo hasta la confluencia con el río Claro, con lóbulos de hasta 100 m de espesor.",
+    "ver": "Un gran manto gris y rugoso de bloques de lava en el fondo del valle del Blanquillo, sin vegetación, con frentes y bordes muy marcados.",
+    "dato": "Es la lava más joven del área: tiene menos de 200 años y todavía casi no la cubre vegetación."
+  },
+  "Hv1949": {
+    "n": "Flujos piroclásticos de la erupción de 1949 del volcán Quizapu", "e": "Erupción de abril de 1949", "ma": [0.000077, 0.000076], "eg": "Erupción de 1949",
+    "que": "Depósitos de flujos de pómez que descendieron por las laderas del Quizapu durante su erupción de abril de 1949, hasta unos 6 km de distancia.",
+    "ver": "Lenguas de color pardo rosado con pómez y bombas de hasta 50 cm, con bordes levantados (levées) a los lados.",
+    "dato": "Antes, en 1932, el Quizapu tuvo una de las mayores erupciones explosivas del siglo XX en Sudamérica: su ceniza cayó sobre gran parte del centro de Argentina."
+  },
+  "PlHac": {
+    "n": "Depósitos aluviocoluviales del Pleistoceno-Holoceno", "e": "Pleistoceno–Holoceno",
+    "que": "Gravas, arenas y ceniza volcánica que bajaron por las laderas y quebradas arrastradas por el agua y la gravedad. Forman conos al pie de los cerros y rellenan los fondos de quebrada.",
+    "ver": "Mezcla desordenada de bloques, gravas y arena, sobre todo de rocas volcánicas, en conos y taludes al pie de las laderas.",
+    "dato": "Parte de la pómez que cayó en la erupción del Quizapu de 1932 fue removida después por las lluvias y quedó mezclada en estos depósitos."
+  },
+  "PlHaf": {
+    "n": "Depósitos aluviofluviales del Pleistoceno-Holoceno", "e": "Pleistoceno–Holoceno",
+    "que": "Gravas y arenas que dejaron antiguos ríos y aluviones en la ribera norte del río Blanquillo.",
+    "ver": "Gravas algo redondeadas en una matriz de arena, con clastos volcánicos, intrusivos, pómez e incluso restos de troncos y ramas.",
+    "dato": "Los restos de troncos y ramas muestran que estos depósitos arrastraron también la vegetación de los valles."
+  },
+  "PlHg": {
+    "n": "Depósitos glaciares del Pleistoceno-Holoceno", "e": "Pleistoceno–Holoceno",
+    "que": "Material que dejaron los glaciares que cubrieron las partes altas del área: morrenas de bloques y gravas que el hielo empujó y abandonó al retirarse.",
+    "ver": "Lomas alargadas de gravas ocres con bloques de todos los tamaños, algunos con caras planas pulidas. Bloques erráticos sueltos y rocas estriadas por el hielo.",
+    "dato": "En el valle del Radal hay una morrena lateral de unos 30 m de alto y 4 km de largo: marca hasta dónde llegaba el borde del glaciar."
+  },
+  "PlHrm": {
+    "n": "Depósitos de remociones en masa del Pleistoceno-Holoceno", "e": "Pleistoceno–Holoceno",
+    "que": "Restos de grandes derrumbes. El principal se formó cuando colapsó parte del volcán Cerro Manantial Pelado y una avalancha de rocas viajó unos 5 km hacia el oeste.",
+    "ver": "Terreno de lomitas sueltas (hummocks) de hasta 20 m de alto, con bloques volcánicos grises y rojizos de hasta 3 m.",
+    "dato": "Las lomitas tipo 'hummock' son la firma de las avalanchas de volcanes: el edificio se rompe en grandes trozos que quedan esparcidos al detenerse."
+  },
+  "PlHgs": {
+    "n": "Depósitos glaciosedimentarios del Pleistoceno-Holoceno", "e": "Pleistoceno–Holoceno",
+    "que": "Gravas de origen glaciar que después fueron retrabajadas por ríos, aluviones y derrumbes, en las quebradas Silahur y en el sector del Radal.",
+    "ver": "Capas gruesas de gravas mal seleccionadas con bloques redondeados de hasta 3 m.",
+    "dato": "Primero el hielo arrancó y transportó las rocas; después el agua las movió de nuevo y las redondeó."
+  },
+  "PlsHv": {
+    "n": "Volcanes y remanentes volcánicos del Pleistoceno Superior-Holoceno", "e": "Pleistoceno Superior–Holoceno",
+    "que": "Lavas y depósitos de los grandes volcanes jóvenes del área: el Descabezado Grande, el Cerro Azul y el volcán Despalmado, además de coladas que bajaron hasta los valles del Claro y el Blanquillo.",
+    "ver": "Coladas gruesas de lava oscura con columnas (disyunción columnar), escorias rojizas y, en los valles, depósitos de flujos piroclásticos con bloques de vidrio negro.",
+    "dato": "El Descabezado Grande debe su nombre a su cumbre truncada, ocupada por un cráter de más de 1 km relleno de hielo.",
+    "facies": {
+      "a": "Aquí hay lavas basálticas y andesítico-basálticas: el material que construyó los volcanes.",
+      "b": "Aquí hay depósitos de caída: capas finas de escoria que llovieron desde las columnas eruptivas.",
+      "c": "Aquí hay depósitos de flujos piroclásticos: avalanchas de gas caliente, ceniza y bloques que corrieron ladera abajo.",
+      "d": "Aquí hay lavas glaciovolcánicas: lavas que se enfriaron al contacto con hielo o agua y quedaron craqueladas en pequeños polígonos."
+    }
+  },
+  "Plmv": {
+    "n": "Volcanes y remanentes volcánicos del Pleistoceno Medio", "e": "Pleistoceno Medio (ca. 600 a 160 mil años)", "ma": [0.6, 0.16],
+    "que": "Lavas y piroclastos de volcanes que hoy están parcialmente erosionados por los glaciares, como el Cerro Manantial Pelado y el sector Picazo, y lavas que rellenaron el valle del Blanquillo.",
+    "ver": "Coladas de lava de 10 a 70 m, a menudo con columnas, y lavas craqueladas en el valle del Blanquillo que se enfriaron contra el hielo.",
+    "dato": "Varias de estas lavas se enfriaron al contacto con glaciares: el agua y el hielo las fracturaron en formas poligonales y tubos de lava.",
+    "facies": {
+      "a": "Aquí hay lavas basálticas y andesítico-basálticas de antiguos volcanes.",
+      "b": "Aquí hay depósitos piroclásticos: escoria, bombas y bloques lanzados por el volcán Cerro Manantial Pelado.",
+      "c": "Aquí hay lavas glaciovolcánicas: se enfriaron contra el hielo y quedaron muy fracturadas."
+    }
+  },
+  "Pliv": {
+    "n": "Volcanes y remanentes volcánicos del Pleistoceno Inferior", "e": "Pleistoceno Inferior (ca. 1,44 a 0,98 millones de años)", "ma": [1.44, 0.98],
+    "que": "Coladas de lava y depósitos de flujos piroclásticos casi horizontales, de hasta 500 m de espesor en total, que cubren las cumbres de la cordillera Roco, el cerro Divisadero, el cerro La Chepa y el cordón Despalmado.",
+    "ver": "Mesetas y cumbres planas formadas por capas horizontales de lava oscura con columnas, que se apoyan sobre las capas verticales de la Formación Abanico.",
+    "dato": "Algunas de estas lavas rellenaron antiguos valles en forma de U: hoy quedan 'colgadas' en lo alto porque la erosión excavó los valles actuales más abajo.",
+    "facies": {
+      "a": "Aquí hay lavas basálticas de olivino y piroxeno en capas horizontales.",
+      "b": "Aquí hay ignimbritas: depósitos de flujos piroclásticos, a veces soldados, con pómez y fragmentos de vidrio aplastados.",
+      "c": "Aquí hay brechas piroclásticas de arrastre de hasta 200 m de espesor: bloques de hasta 4 m que dejaron flujos piroclásticos muy energéticos."
+    }
+  },
+  "Plib": {
+    "n": "Estratos El Burro", "e": "Pleistoceno Inferior (menos de 2,1 millones de años)", "ma": [2.1, 1.44],
+    "que": "Conglomerados, areniscas y limolitas que dejaron ríos que bajaban de la cordillera, intercalados hacia arriba con tobas y lavas. Alcanzan unos 600 m de espesor en la quebrada El Burro y el cordón Alto Las Garzas.",
+    "ver": "Capas casi horizontales de conglomerados y areniscas gris rosáceas, con canales, que se apoyan en discordancia sobre las capas verticales de la Formación Abanico.",
+    "dato": "Sus circones más jóvenes tienen 2,1 millones de años: la roca no puede ser más antigua que los granos que la forman."
+  },
+  "PsPliv": {
+    "n": "Volcanes y remanentes volcánicos del Plioceno Superior-Pleistoceno Inferior", "e": "Plioceno Superior–Pleistoceno Inferior (ca. 2,5 a 1,9 millones de años)", "ma": [2.52, 1.87],
+    "que": "Coladas de lava casi horizontales, de 10 a 20 m de espesor cada una, alrededor del Radal, en el río Claro y en el cerro La Chepa.",
+    "ver": "Escalones de lava gris oscura con columnas y lajas, a veces con vesículas (burbujas) alargadas.",
+    "dato": "Las columnas de las lavas se forman al enfriarse y contraerse la roca, como el barro que se agrieta al secarse."
+  },
+  "Plr": {
+    "n": "Monzodiorita La Resolana", "e": "Plioceno (ca. 3,9 millones de años)", "ma": [3.98, 3.9],
+    "que": "Roca intrusiva que se enfrió bajo tierra hace unos 3,9 millones de años, al este del cerro La Resolana. Sobre ella se construyeron los volcanes Caracol, Quillayes y La Resolana.",
+    "ver": "Roca maciza gris rosácea, de grano medio a fino, con cristales visibles. Sus partes altas son planas, probablemente pulidas por los glaciares.",
+    "dato": "El magma habría subido aprovechando la Falla Las Corrientes. Que hoy esté en la superficie muestra cuánto se ha alzado y erosionado la cordillera en 4 millones de años."
+  },
+  "Pcn": {
+    "n": "Unidad Cajón Negro", "e": "Plioceno Inferior (ca. 4,6 a 4,2 millones de años)", "ma": [4.6, 4.17],
+    "que": "Principalmente una gran brecha volcánica de al menos 300 m de espesor, con lavas y tobas, en la ribera noroeste del río Blanquillo, el cajón Negro y la laguna El Tigre.",
+    "ver": "Roca gris oscura con bloques angulosos de todos los tamaños, algunos claros (riolíticos) deformados como si hubieran estado blandos.",
+    "dato": "Los fragmentos claros se deformaron porque todavía estaban calientes y plásticos cuando quedaron depositados.",
+    "facies": {
+      "a": "Aquí hay lavas basálticas y cuerpos subvolcánicos, a menudo craquelados.",
+      "b": "Aquí hay brechas piroclásticas con bloques andesíticos y riolíticos.",
+      "c": "Aquí hay tobas de ceniza y lapilli en capas de color ocre."
+    }
+  },
+  "Mmli": {
+    "n": "Complejo Intrusivo La Invernada", "e": "Mioceno Medio (ca. 14 a 12 millones de años)", "ma": [14.4, 12.0],
+    "que": "Rocas intrusivas que se enfriaron bajo tierra alrededor de la laguna de La Invernada. Hoy forman el basamento sobre el que se construyeron los volcanes Los Hornitos, Cerro Azul, Quizapu y Descabezado.",
+    "ver": "Roca maciza de grano medio, gris verdosa (dioritas) o gris rosácea (sienogranitos), con manchas oscuras redondeadas (enclaves).",
+    "dato": "Edades más jóvenes medidas antes (unos 7 millones de años) se explican porque intrusiones posteriores recalentaron la roca.",
+    "facies": {
+      "d": "Aquí hay dioritas, dioritas cuarcíferas y monzodioritas.",
+      "sg": "Aquí hay sienogranito de biotita, rico en cuarzo."
+    }
+  },
+  "Miv": {
+    "n": "Complejo Intrusivo Vilches", "e": "Mioceno Inferior (ca. 20 a 18 millones de años)", "ma": [20.3, 18.2],
+    "que": "Rocas intrusivas que atraviesan a la Formación Abanico en los alrededores de los ríos Claro y Radal, y que se extienden hacia el oeste, hacia Vilches.",
+    "ver": "Roca maciza de grano medio, gris clara a verdosa, a veces con trozos de las rocas de Abanico atrapados en ella.",
+    "dato": "Una tonalita del cerro Los Tiuques dio 20,2 millones de años, igual que los cuerpos del mismo complejo más al oeste.",
+    "facies": {
+      "d": "Aquí hay dioritas y tonalitas.",
+      "da": "Aquí hay rocas félsicas con pequeños granates.",
+      "gd": "Aquí hay granodioritas."
+    }
+  },
+  "Mimcu": {
+    "n": "Formación Cura-Mallín", "e": "Mioceno Inferior–Medio (ca. 20 a 14 millones de años)", "ma": [20.0, 14.0],
+    "que": "Lavas andesíticas, tobas y rocas sedimentarias de origen volcánico, de al menos 1.000 m de espesor. Se depositaron en un ambiente continental mientras la cordillera se deformaba y alzaba.",
+    "ver": "Farellones de lavas negras a ocres con amígdalas, y capas de tobas y areniscas con pliegues y pequeñas fallas.",
+    "dato": "Entre sus capas se encontraron tallos de Equisetum (cola de caballo), una planta de ambientes húmedos y de agua dulce.",
+    "facies": {
+      "a": "Aquí predominan las lavas andesíticas.",
+      "b": "Aquí predominan las tobas, areniscas y fangolitas volcanoclásticas."
+    }
+  },
+  "EMia": {
+    "n": "Formación Abanico", "e": "¿Eoceno Superior?–Mioceno Inferior (ca. 35 a 22 millones de años)", "ma": [35.5, 22.1],
+    "que": "Una pila de más de 4,5 km de tobas, brechas, lavas andesíticas y sedimentos volcánicos, acumulada en cuencas continentales dentro de un arco volcánico. Después fue plegada y sus capas quedaron casi verticales.",
+    "ver": "Capas de tobas violáceas, grises y rosadas, puestas casi de canto en franjas de dirección norte-sur, cortadas por muchos diques.",
+    "dato": "Sus capas se depositaron horizontales; que hoy estén verticales muestra la compresión que formó los Andes. Su edad más joven, 22,1 millones de años, viene del núcleo del sinclinal Huemules.",
+    "facies": {
+      "a": "Aquí predominan las tobas, con algunas areniscas, lutitas y lavas.",
+      "b": "Aquí predominan las lavas andesíticas de la base de la formación.",
+      "c": "Aquí se alternan brechas piroclásticas, tobas y rocas sedimentarias en capas rítmicas."
+    }
+  },
+  "Kc": {
+    "n": "Formación Colimapu", "e": "Cretácico (ca. 130 a 90 millones de años)", "ma": [130.6, 90.6],
+    "que": "Las rocas más antiguas del mapa: areniscas calcáreas rojizas, tobas y lavas, en una pequeña franja al este del río Cipreses.",
+    "ver": "Capas rojizas casi verticales de areniscas y tobas, con lavas grises y diques de 'ocoíta' (andesita con grandes cristales de plagioclasa).",
+    "dato": "Entre esta formación y la Formación Abanico faltan al menos 55 millones de años de registro: un largo período sin depósitos en esta zona."
+  }
+}

@@ -14,16 +14,18 @@ PT = 0.0254 / 72 * 50000  # 1 punto tipográfico a escala 1:50.000, en metros (�
 
 MAPAS = [
     {'id': 'rc', 'lyr': 'Unidades geológicas__Rio_claro_29072026.lyr.json',
-     'titulo': 'Río Claro (Informe Registrado)', 'hoja': 'Geología del área Río Claro, Región del Maule',
+     'titulo': 'Río Claro (Informe Registrado)', 'hoja': 'Geología del cuadrángulo Río Claro, Región del Maule (IR-23-110)',
      'anno_u': 'Unidades_geologicasAnno_50', 'anno_m': 'Medidas_estructuralesAnno_50', 'colocar': {'si'},
      'pliegues': 'GB_PLIEGUE_L', 'diques': 'GB_DIQUE_FILON_MANTO_L', 'simb': 'GB_SIMBOLO_FALLA_PLIEGUE', 'fosil': 'GB_FOSIL',
      'anno_f': 'Fallas_Texto',
      # el .mxd solo muestra las dataciones con DESPLEGAR = 'Ap' OR DESPLEGAR = 'Si' (48 de 115)
-     'geocron': lambda p: (p.get('DESPLEGAR') or '').strip().lower() in ('si', 'ap')},
+     'geocron': lambda p: (p.get('DESPLEGAR') or '').strip().lower() in ('si', 'ap'),
+     'descr': ['rc.json']},
     {'id': 'cc', 'lyr': 'Unidades geológicas_Central_Cipreses_01102026.lyr.json',
      'titulo': 'Central Cipreses (versión preliminar)', 'hoja': 'Geología del área Central Los Cipreses, Región del Maule (versión preliminar)',
      'anno_u': None, 'anno_m': 'Anno_Medidas_estructurales', 'colocar': {'NEW', 'NEW.'},
-     'geocron': lambda p: True},  # sin campo DESPLEGAR: todas, salvo las sin edad o con "00±00" (se descartan más abajo)
+     'geocron': lambda p: True,
+     'descr': ['rc.json']},  # unidades que comparte con Río Claro (depósitos cuaternarios, volcanes jóvenes)  # sin campo DESPLEGAR: todas, salvo las sin edad o con "00±00" (se descartan más abajo)
 ]
 
 DOM = json.load(open(os.path.join(SAL, 'dominios.json'), encoding='utf-8'))
@@ -187,6 +189,30 @@ def L(mid, capa):
 
 INF = {'TP-INF-1': 0, 'TP-INF-2': 2, 'TP-INF-3': 1}  # 0 observada, 1 inferida, 2 cubierta
 
+# Descripciones divulgativas por unidad (tools/mapas/descripciones/<hoja>.json), redactadas desde el informe de la hoja.
+# Se buscan por código completo sin la facies ("Hv1846(a)" → "Hv1846"), luego sin números ("Hv"). La facies (a, b…) agrega una frase.
+DESCR_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'descripciones')
+_descr = {}
+def descripciones(nombres):
+    out = {}
+    for n in nombres or []:
+        if n not in _descr: _descr[n] = json.load(open(os.path.join(DESCR_DIR, n), encoding='utf-8'))
+        for k, v in _descr[n].items(): out.setdefault(k, v)
+    return out
+def aplicar_descripcion(u, cod, nombres):
+    D = descripciones(nombres)
+    m = re.match(r'^(.*?)(?:\(([^)]*)\))?$', cod); base, facies = m.group(1), m.group(2)
+    d = D.get(base) or D.get(re.sub(r'\d+$', '', base))
+    if not d: return
+    u['n'] = d.get('n') or u['n']
+    if d.get('e'): u['e'] = d['e']
+    if d.get('ma'): u['ma'], u['pi'], u['ap'] = d['ma'], '', False
+    elif u.get('ap') and d.get('e'): u['ap'] = False
+    for k_src, k_dst in (('que', 'q'), ('ver', 'v'), ('dato', 'dt'), ('eg', 'eg')):
+        if d.get(k_src): u[k_dst] = d[k_src]
+    if facies and (d.get('facies') or {}).get(facies): u['fa'] = d['facies'][facies]
+    u['ref'] = descripciones(nombres).get('_fuente', '')
+
 def preparar(M, compartidas):
     mid = M['id']
     lyr = json.load(open(os.path.join(SAL, M['lyr']), encoding='utf-8'))['root']['renderer']
@@ -214,6 +240,7 @@ def preparar(M, compartidas):
                       't': p.get('SUBTIPO_DESC') or '', 'd': ' · '.join(x for x in partes if x), 'def': (p.get('DEFINICION') or '').strip(),
                       'g': [p.get('GEOCRON_EDAD_MAX'), p.get('GEOCRON_EDAD_MIN'), dom(p.get('UNIDAD_MEDIDA'))] if p.get('GEOCRON_EDAD_MAX') or p.get('GEOCRON_EDAD_MIN') else None,
                       's': simb.get(cod) or [{'k': 'f', 'c': '#cccccc'}]}
+            aplicar_descripcion(U[cod], cod, M.get('descr'))
         for pp in poligonos(f['geometry']):
             pp['u'] = cod; polys.append(pp)
     polys.sort(key=lambda x: -x['a'])

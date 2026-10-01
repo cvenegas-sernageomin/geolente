@@ -270,6 +270,7 @@ async function cargarDetalle(A) {
       UNI[clave] = {
         cod: clave, codigo: cod, cat: CATEGORIAS[u.cat] ? u.cat : 'sininfo', titulo: u.n || `Unidad ${cod}`, edad: u.e, pisos: u.pi, ma: u.ma, aprox: u.ap,
         color: colorUnidad(u), desc: [u.def, u.d].filter(Boolean).join(' · '), tipo: u.t, geocron: u.g, mapa: M.titulo, hoja: M.hoja,
+        que: u.q, ver: u.v, dato: u.dt, facies: u.fa, edadGrande: u.eg, ref: u.ref,
       };
     }
     for (const p of M.polys) ESC.polysDet.push({ ...p, cod: `${M.id}:${p.cod}`, M });
@@ -743,7 +744,7 @@ function htmlEtiqueta(cod) {
   const nuevo = !vistos.u[cod];
   const nombre = u.cat === 'sininfo' && u.codigo ? `Unidad ${u.codigo}` : c.nombre;
   return `<div class="etq-caja"><span class="etq-ico">${c.ico}</span><span class="etq-txt"><b>${esc(nombre)}${u.codigo ? ` <em class="etq-cod">${esc(u.codigo)}</em>` : ''}</b>
-    <small>${u.ma ? esc(fmtRango(u, true)) + (u.edad ? ' · ' + esc(edadCorta(u.edad)) : '') : esc(c.lema)}</small></span>${nuevo ? '<i class="etq-nuevo">¡nuevo!</i>' : ''}</div>
+    <small>${u.edadGrande ? esc(u.edadGrande) : u.ma ? esc(fmtRango(u, true)) + (u.edad ? ' · ' + esc(edadCorta(u.edad)) : '') : esc(c.lema)}</small></span>${nuevo ? '<i class="etq-nuevo">¡nuevo!</i>' : ''}</div>
     <div class="etq-palo"></div><div class="etq-punto"></div>`;
 }
 function htmlPin(p) {
@@ -949,22 +950,23 @@ function abrirFicha(cod) {
   const u = UNI[cod]; if (!u) return;
   const c = CATEGORIAS[u.cat] || CATEGORIAS.sininfo;
   const media = u.ma ? (u.ma[0] + u.ma[1]) / 2 : null;
-  const dato = u.cat === 'marina' ? datoMarino(u) : c.dato;
+  const dato = u.dato ?? (u.cat === 'marina' ? datoMarino(u) : c.dato);
+  const que = u.que ?? c.que, ver = u.ver ?? c.ver;
   const joven = (u.cat === 'volcanica' && u.ma && u.ma[0] <= 2.6) ? '<p class="nota">Es volcanismo joven: algunos de estos volcanes pueden volver a entrar en erupción.</p>' : '';
   const det = !!u.codigo; // unidad de un mapa detallado 1:50.000
   const edadTxt = [u.edad, u.pisos ? `pisos ${u.pisos}` : ''].filter(Boolean).join(' · ');
   const gc = u.geocron && (u.geocron[0] || u.geocron[1]) ? `<p>Edades medidas en la unidad: ${[u.geocron[0], u.geocron[1]].filter(x => x != null).map(x => nf1.format(x)).join(' a ')} ${esc(u.geocron[2] || '')}.</p>` : '';
   $('#ficha-cuerpo').innerHTML = `
     <header class="fi-cab" style="--c:${u.color}"><span class="fi-ico">${c.ico}</span><div><small>${esc(u.cat === 'sininfo' && det ? 'Unidad geológica' : c.nombre)}${c.lema ? ' · ' + esc(c.lema) : ''}</small><h2>${esc(u.titulo)}</h2></div></header>
-    ${u.ma ? `<section><h3>⏳ ¿Qué edad tiene?</h3><p class="grande">${esc(fmtRango(u))}</p>
+    ${u.ma ? `<section><h3>⏳ ¿Qué edad tiene?</h3><p class="grande">${esc(u.edadGrande || fmtRango(u))}</p>
       <p>${esc(edadTxt)} · era ${esc(era(media))}</p>${u.aprox ? '<p class="nota">Edad aproximada, deducida del código de la unidad: esta hoja del mapa todavía no trae su edad.</p>' : ''}${gc}
       <p>Si toda la historia de la Tierra (4.567 millones de años) fuera <b>un solo año</b>, esta roca se habría formado <b>${calendario(media)}</b>.</p>${barraAnio(media)}
       <p class="contexto">🌍 ${esc(contextoEdad(media))}</p></section>` : ''}
-    ${c.que ? `<section><h3>🔎 ¿Qué es?</h3><p>${esc(c.que)}</p>${joven}</section>` : ''}
-    ${c.ver ? `<section><h3>👀 ¿Cómo reconocerla?</h3><p>${esc(c.ver)}</p></section>` : ''}
+    ${que ? `<section><h3>🔎 ¿Qué es?</h3><p>${esc(que)}</p>${u.facies ? `<p class="nota">${esc(u.facies)}</p>` : ''}${joven}</section>` : ''}
+    ${ver ? `<section><h3>👀 ¿Cómo reconocerla?</h3><p>${esc(ver)}</p></section>` : ''}
     ${dato ? `<section class="dato"><h3>💡 ¿Sabías que…?</h3><p>${esc(dato)}</p></section>` : ''}
     ${det ? `<section class="oficial"><h3>📖 Mapa geológico detallado</h3>${u.desc ? `<p>${esc(u.tipo ? u.tipo + ' · ' : '')}${esc(u.desc)}</p>` : ''}
-      <p class="cod">Unidad <b>${esc(u.codigo)}</b> · ${esc(u.hoja)}, escala 1:50.000, SERNAGEOMIN</p></section>
+      <p class="cod">Unidad <b>${esc(u.codigo)}</b> · ${esc(u.hoja)}, escala 1:50.000, SERNAGEOMIN</p>${u.ref ? `<p class="cod">Textos basados en: ${esc(u.ref.replace(/^Textos divulgativos redactados a partir de /, ''))}</p>` : ''}</section>
     <p class="aviso">Mapa detallado: los límites entre unidades tienen una precisión de decenas de metros.</p>`
     : `<section class="oficial"><h3>📖 Descripción del mapa oficial</h3><p>${esc(u.desc)}</p>
       <p class="cod">${u.cod.startsWith('S I') ? 'Lago o glaciar según el relieve' : `Unidad <b>${esc(u.cod)}</b>`} · Mapa Geológico de Chile 1:1.000.000, SERNAGEOMIN</p></section>
