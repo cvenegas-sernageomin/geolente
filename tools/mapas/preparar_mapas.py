@@ -17,10 +17,13 @@ MAPAS = [
      'titulo': 'Río Claro (Informe Registrado)', 'hoja': 'Geología del área Río Claro, Región del Maule',
      'anno_u': 'Unidades_geologicasAnno_50', 'anno_m': 'Medidas_estructuralesAnno_50', 'colocar': {'si'},
      'pliegues': 'GB_PLIEGUE_L', 'diques': 'GB_DIQUE_FILON_MANTO_L', 'simb': 'GB_SIMBOLO_FALLA_PLIEGUE', 'fosil': 'GB_FOSIL',
-     'anno_f': 'Fallas_Texto'},
+     'anno_f': 'Fallas_Texto',
+     # el .mxd solo muestra las dataciones con DESPLEGAR = 'Ap' OR DESPLEGAR = 'Si' (48 de 115)
+     'geocron': lambda p: (p.get('DESPLEGAR') or '').strip().lower() in ('si', 'ap')},
     {'id': 'cc', 'lyr': 'Unidades geológicas_Central_Cipreses_01102026.lyr.json',
      'titulo': 'Central Cipreses (versión preliminar)', 'hoja': 'Geología del área Central Los Cipreses, Región del Maule (versión preliminar)',
-     'anno_u': None, 'anno_m': 'Anno_Medidas_estructurales', 'colocar': {'NEW', 'NEW.'}},
+     'anno_u': None, 'anno_m': 'Anno_Medidas_estructurales', 'colocar': {'NEW', 'NEW.'},
+     'geocron': None},  # sin campo para elegir cuáles se muestran (falta el .mxd de esta hoja): no se publican
 ]
 
 DOM = json.load(open(os.path.join(SAL, 'dominios.json'), encoding='utf-8'))
@@ -262,8 +265,9 @@ def preparar(M, compartidas):
         medidas.append([round(x, 6), round(y, 6), p.get('AZIMUT') or 0, p.get('MANTEO_BUZAMIENTO'), t, 1 if 'fotointerpret' in tp else 0])
     # geocronología
     geocron = []
-    for f in L(mid, 'GB_GEOCRONOLOGIA'):
+    for f in (L(mid, 'GB_GEOCRONOLOGIA') if M.get('geocron') else []):
         p = f['properties']; x, y = f['geometry']['coordinates'][:2]
+        if not M['geocron'](p): continue
         if not borde.buffer(0.002).contains(shape(f['geometry'])): continue
         et = re.sub(r'\s+\S+$', '', (p.get('ETIQUETA') or '').strip()) if re.search(r'(Ma|ka|AP|BP)\s+\S+$', p.get('ETIQUETA') or '') else (p.get('ETIQUETA') or '').strip()
         if not et and p.get('EDAD'):
