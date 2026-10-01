@@ -12,6 +12,7 @@ import { cargarMapas, pintarMapa, colorUnidad, dentroBorde } from './mapas.js';
 const $ = s => document.querySelector(s);
 const params = new URLSearchParams(location.search);
 const R_TIERRA = 6371000, REFRACCION = 0.13, FOV_DEF = 68;
+const VERSION_APP = 29; // = VER de sw.js ('geolente-v29'): subir los dos juntos
 
 const CFG = {
   alcance: +(leer('alcance') || 25000), nGrid: 481, tex: 2048, ojo: 1.7,
@@ -1799,7 +1800,25 @@ function iniciarUI() {
 
   const sim = params.get('sim');
   if (sim) { const [la, lo, ru] = sim.split(',').map(Number); abrirEn(la, lo, 'explorar', ru || 0); }
-  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js');
+  if ('serviceWorker' in navigator && location.protocol === 'https:') instalarSW();
+}
+// Versiones nuevas: la app instalada queda abierta en memoria y el navegador solo busca actualizaciones al navegar,
+// así que se busca al volver a la app; cuando la nueva toma el control se ofrece recargar (sin cortar la RA).
+function instalarSW() {
+  const habia = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+  }).catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', async () => {
+    if (!habia || $('#aviso-version')) return;
+    // si esta página ya trae el código nuevo (llegó por red), su caché es la que quedó: no hay nada que avisar
+    try { if ((await caches.keys()).includes('geolente-v' + VERSION_APP)) return; } catch {}
+    const b = document.createElement('button');
+    b.id = 'aviso-version'; b.type = 'button';
+    b.innerHTML = 'Hay una versión nueva de GeoLente · <b>Actualizar</b>';
+    b.onclick = () => location.reload();
+    document.body.appendChild(b);
+  });
 }
 // ------------------------------------------------------------------ instalar como app (igual que GeoParqueMet)
 // La invitación queda visible mientras no esté instalada; si el navegador no ofrece su diálogo
