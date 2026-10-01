@@ -12,7 +12,7 @@ import { cargarMapas, pintarMapa, colorUnidad, dentroBorde } from './mapas.js';
 const $ = s => document.querySelector(s);
 const params = new URLSearchParams(location.search);
 const R_TIERRA = 6371000, REFRACCION = 0.13, FOV_DEF = 68;
-const VERSION_APP = 29; // = VER de sw.js ('geolente-v29'): subir los dos juntos
+const VERSION_APP = 30; // = VER de sw.js ('geolente-v30'): subir los dos juntos
 
 const CFG = {
   alcance: +(leer('alcance') || 25000), nGrid: 481, tex: 2048, ojo: 1.7,

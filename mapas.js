@@ -35,6 +35,9 @@ export const colorUnidad = u => (u.s.find(c => c.k === 'f') || {}).c || '#cccccc
 
 // ------------------------------------------------------------------ dibujo
 const FUENTES_WEB = new Set(['Arial', 'geologia']); // "geologia" (fuente interna) usa los mismos códigos que Arial en estas tramas
+// El .lyr guarda "Arial" con '<' (60) y '=' (61), pero la carta publicada muestra V (volcánico) y T (toba):
+// la fuente con que se imprimió tiene otros dibujos en esos códigos. Se dibuja lo que se ve en la carta.
+const CAR_CARTA = { 60: 'V', 61: 'T' };
 
 function dibujarMarcador(ctx, mk, k) {
   ctx.save();
@@ -50,7 +53,7 @@ function dibujarMarcador(ctx, mk, k) {
     ctx.rotate(-(mk.a || 0) * Math.PI / 180);
     if (FUENTES_WEB.has(mk.f)) {
       ctx.font = `${px}px Arial, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(String.fromCharCode(mk.u), 0, 0);
+      ctx.fillText(CAR_CARTA[mk.u] || String.fromCharCode(mk.u), 0, 0);
     } else {
       // fuentes ESRI y otras que el navegador no tiene: un signo sencillo del mismo tamaño
       ctx.lineWidth = Math.max(0.8, px * 0.06); const r = px * 0.22;
@@ -154,9 +157,12 @@ export function pintarMapa(M, A, aEN, maxPx) {
   // diques
   for (const l of M.ld) linea(aPx(l.ll), 0.8, '#b0102a', null);
 
-  // pliegues: traza axial + flechas en el centro (anticlinal hacia afuera, sinclinal hacia adentro)
+  // pliegues: traza axial fina. Las flechas las pone la capa de símbolos del mapa (M.sm), como en la carta;
+  // solo si el mapa no trae símbolos se dibujan en el centro de cada traza (anticlinal hacia afuera, sinclinal hacia adentro)
+  const simbPliegue = M.sm.some(s => /clinal/i.test(s[3])), simbFalla = M.sm.some(s => /^falla/i.test(s[3]));
   for (const l of M.lp) {
-    const pts = aPx(l.ll); linea(pts, 1, '#111', DASH[l.i]);
+    const pts = aPx(l.ll); linea(pts, 0.7, '#111', DASH[l.i]);
+    if (simbPliegue) continue;
     const m = puntoMedio(pts); if (!m) continue;
     const [x, y, a] = m, L = 6 * k, h = 1.6 * k, sale = l.t === 'anticlinal';
     ctx.setLineDash([]); ctx.lineWidth = Math.max(0.7, 0.9 * k);
@@ -173,11 +179,11 @@ export function pintarMapa(M, A, aEN, maxPx) {
   // fallas: inversa con dientes, normal con bolita, de rumbo con flechas; inferida segmentada, cubierta punteada
   for (const l of M.lf) {
     const pts = aPx(l.ll);
-    linea(pts, 1.3, '#000', DASH[l.i]);
+    linea(pts, 1.5, '#000', DASH[l.i]);
     ctx.setLineDash([]); ctx.fillStyle = ctx.strokeStyle = '#000';
     if (l.t === 'inversa') {
-      const base = 3.2 * k, alto = 2.6 * k;
-      aLoLargo(pts, 22 * k, 11 * k, (x, y, a) => {
+      const base = 5.8 * k, alto = 4.2 * k; // medidos sobre la carta IR-23-110
+      aLoLargo(pts, 18 * k, 9 * k, (x, y, a) => {
         const ux = Math.cos(a), uy = Math.sin(a), nx = uy, ny = -ux; // izquierda del sentido de digitalización
         ctx.beginPath(); ctx.moveTo(x - ux * base / 2, y - uy * base / 2); ctx.lineTo(x + ux * base / 2, y + uy * base / 2);
         ctx.lineTo(x + nx * alto, y + ny * alto); ctx.closePath(); ctx.fill();
@@ -189,7 +195,7 @@ export function pintarMapa(M, A, aEN, maxPx) {
         ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + nx * L, y + ny * L); ctx.stroke();
         ctx.beginPath(); ctx.arc(x + nx * L, y + ny * L, Math.max(1, 1.1 * k), 0, 2 * Math.PI); ctx.fill();
       });
-    } else if (l.t === 'sinistral' || l.t === 'dextral') {
+    } else if ((l.t === 'sinistral' || l.t === 'dextral') && !simbFalla) {
       const m = puntoMedio(pts); if (m) {
         const [x, y, a] = m, ux = Math.cos(a), uy = Math.sin(a), nx = uy, ny = -ux, L = 7 * k, d = 2 * k;
         for (const lado of [1, -1]) {
@@ -205,13 +211,33 @@ export function pintarMapa(M, A, aEN, maxPx) {
     }
   }
 
-  // símbolos de pliegue (flecha según el azimut)
-  for (const [lon, lat, az] of M.sm) {
-    const [x, y] = px(lon, lat), L = 6 * k;
-    ctx.save(); ctx.translate(x, y); ctx.rotate(az * Math.PI / 180);
-    ctx.strokeStyle = ctx.fillStyle = '#111'; ctx.lineWidth = Math.max(0.7, 0.9 * k);
-    ctx.beginPath(); ctx.moveTo(0, L / 2); ctx.lineTo(0, -L / 2); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, -L / 2 - 1.5 * k); ctx.lineTo(-1.3 * k, -L / 2 + 0.8 * k); ctx.lineTo(1.3 * k, -L / 2 + 0.8 * k); ctx.closePath(); ctx.fill();
+  // símbolos de pliegue y de falla (capa GB_SIMBOLO_FALLA_PLIEGUE), con la forma de la carta IR-23-110.
+  // AZIMUT = rumbo de la traza (horario desde el norte); con 0 el símbolo queda para una traza norte-sur.
+  for (const [lon, lat, az, tipo] of M.sm) {
+    const [x, y] = px(lon, lat);
+    ctx.save(); ctx.translate(x, y); ctx.rotate((az || 0) * Math.PI / 180);
+    ctx.strokeStyle = '#111'; ctx.lineWidth = Math.max(0.7, 0.55 * k); ctx.setLineDash([]); ctx.lineCap = 'round';
+    const punta = (px0, py0, dir, largo, abre) => { // punta abierta en (px0, py0) mirando hacia dir (radianes)
+      for (const s of [1, -1]) { ctx.moveTo(px0, py0); ctx.lineTo(px0 - Math.cos(dir + s * abre) * largo, py0 - Math.sin(dir + s * abre) * largo); }
+    };
+    ctx.beginPath();
+    if (/sinclinal/i.test(tipo)) {
+      // barra perpendicular a la traza con las dos puntas juntándose en el eje (asterisco)
+      const L = 7 * k; ctx.moveTo(-L, 0); ctx.lineTo(L, 0);
+      punta(0, 0, 0, 4.4 * k, 0.4); punta(0, 0, Math.PI, 4.4 * k, 0.4);
+    } else if (/anticlinal/i.test(tipo)) {
+      // barra perpendicular con las puntas hacia afuera
+      const L = 7 * k; ctx.moveTo(-L, 0); ctx.lineTo(L, 0);
+      punta(L, 0, 0, 2.6 * k, 0.6); punta(-L, 0, Math.PI, 2.6 * k, 0.6);
+    } else if (/^falla/i.test(tipo)) {
+      // par de medias flechas paralelas a la falla, una a cada lado: sentido sinistral, como en la carta
+      const L = 9 * k, d = 1.8 * k, b = 3.4 * k;
+      ctx.moveTo(-d, L); ctx.lineTo(-d, -L); // lado izquierdo (oeste con az 0): flecha hacia atrás
+      ctx.moveTo(-d, L); ctx.lineTo(-d - b * 0.45, L - b);
+      ctx.moveTo(d, -L); ctx.lineTo(d, L);                    // lado derecho: flecha hacia adelante
+      ctx.moveTo(d, -L); ctx.lineTo(d + b * 0.45, -L + b);
+    }
+    ctx.stroke();
     ctx.restore();
   }
 

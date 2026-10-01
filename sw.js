@@ -1,7 +1,7 @@
 // GeoLente: caché propia. Comparte origen con otras PWAs en github.io, así que SOLO borra cachés "geolente-*".
 // GitHub Pages cambia la ETag de TODOS los archivos en cada publicación (mtime-tamaño), aunque no cambien:
 // por eso los datos y las librerías van en una caché aparte que se usa primero y solo se renueva al subir DATOS.
-const VER = 'geolente-v29';        // código de la app (html, css, js): subir en cada publicación
+const VER = 'geolente-v30';        // código de la app (html, css, js): subir en cada publicación
 const DATOS = 'geolente-datos-1';  // data/ y vendor/: subir SOLO cuando cambie algún archivo de esas carpetas
 const CACHE_GEO = 'geolente-geo', CACHE_DEM = 'geolente-dem', CACHE_SAT = 'geolente-sat';
 const SHELL = ['./', 'index.html', 'estilo.css', 'app.js', 'contenido.js', 'mapas.js', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png'];
