@@ -761,6 +761,7 @@ function crearEtiqueta(clave, html, color, alTocar) {
 }
 
 let ultimaSeleccion = 0;
+const MAX_CAJAS = 2;
 function seleccionarEtiquetas(t) {
   if (t - ultimaSeleccion < 280) return false; ultimaSeleccion = t;
   const quiero = new Map();
@@ -830,6 +831,14 @@ function seleccionarEtiquetas(t) {
     cerca.sort((a, b) => a.d - b.d);
     let puestos = 0;
     for (const { i } of cerca) { if (puestos >= 4) break; if (!visible(ESC.pins[i].pos)) continue; quiero.set('⌚' + i, ESC.pins[i].pos); puestos++; }
+    // a lo más MAX_CAJAS etiquetas con caja (unidades, fallas, dataciones): las más cercanas a la mira, para que se vea el mapa.
+    // Las que ya están puestas tienen ventaja, así no saltan de un lado a otro al mover un poco el teléfono.
+    const spc = { x: 0, y: 0 }, cx = VW() / 2, cy = VH() / 2;
+    const cajas = [...quiero.entries()].filter(([k]) => !k.startsWith('▲')).map(([k, pos]) => {
+      enPantalla(pos, spc);
+      return { k, d: Math.hypot(spc.x - cx, spc.y - cy) * (ETQ.has(k) ? 0.6 : 1) };
+    }).sort((a, b) => a.d - b.d);
+    for (const { k } of cajas.slice(MAX_CAJAS)) quiero.delete(k);
   }
   for (const [k, e] of ETQ) if (!quiero.has(k)) { e.el.classList.remove('ver'); setTimeout(() => e.el.remove(), 300); ETQ.delete(k); }
   for (const [k, pos] of quiero) {
