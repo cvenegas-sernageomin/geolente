@@ -1,5 +1,5 @@
-// GeoLente: caché propia. Comparte origen con otras PWAs en github.io, así que SOLO borra cachés "geolente-*".
-const VER = 'geolente-v27';
+﻿// GeoLente: cachÃ© propia. Comparte origen con otras PWAs en github.io, asÃ­ que SOLO borra cachÃ©s "geolente-*".
+const VER = 'geolente-v28';
 const CACHE_APP = VER, CACHE_GEO = 'geolente-geo', CACHE_DEM = 'geolente-dem', CACHE_SAT = 'geolente-sat';
 const APP = ['./', 'index.html', 'estilo.css', 'app.js', 'contenido.js', 'mapas.js', 'data/mapas/index.json', 'manifest.json', 'icons/icon-192.png', 'icons/icon-512.png',
   'vendor/three/three.module.min.js', 'vendor/three/three.core.js', 'vendor/three/lines/Line2.js', 'vendor/three/lines/LineGeometry.js',
@@ -23,8 +23,8 @@ self.addEventListener('fetch', e => {
     return;
   }
   if (u.origin !== location.origin) return;
-  // app: primero red (para recibir actualizaciones), caché si no hay conexión
-  // cache: 'no-cache' = revalidar siempre con el servidor (GitHub Pages deja 10 min de caché HTTP y se servía código viejo)
+  // app: primero red (para recibir actualizaciones), cachÃ© si no hay conexiÃ³n
+  // cache: 'no-cache' = revalidar siempre con el servidor (GitHub Pages deja 10 min de cachÃ© HTTP y se servÃ­a cÃ³digo viejo)
   e.respondWith(fetch(e.request, { cache: 'no-cache' }).then(r => { if (r.ok) { const copia = r.clone(); caches.open(CACHE_APP).then(c => c.put(e.request, copia)); } return r; })
     .catch(() => caches.match(e.request, { ignoreSearch: true })));
 });

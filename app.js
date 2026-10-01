@@ -779,6 +779,7 @@ function htmlEtiqueta(cod) {
 // Dataciones y fósiles con el estilo de la carta: caja blanca de borde negro, símbolo del método, edad y n.º de referencia
 const SIMB_MET = {
   'U-Pb': '<path d="M7 1.6 13 12.4H1Z"/>',
+  'U-Pb det': '<path d="M7 1.6 13 12.4H1Z"/><circle cx="7" cy="8.6" r="1.4" fill="currentColor"/>',
   '40Ar-39Ar': '<path d="M7 1 13 7 7 13 1 7Z"/><circle cx="7" cy="7" r="1.5" fill="currentColor"/>',
   'K-Ar': '<rect x="1.5" y="1.5" width="11" height="11"/>',
   '14C': '<path d="M1 1.6H13L7 12.4Z M7 1.6V12.4"/>',
@@ -788,7 +789,7 @@ const simbMet = k => `<svg class="pin-simb" viewBox="0 0 14 14" aria-hidden="tru
 const txtEdad = t => t.replace(/\s*±\s*/g, '±').replace(/\s+/g, ' ').replace(/\b(BP|AP)$/, 'años AP');
 function htmlPin(p) {
   const txt = p.tipo === 'dat' ? txtEdad(p.txt) : (p.edad || p.txt);
-  return `<div class="etq-caja">${simbMet(p.tipo === 'dat' ? p.met : 'fosil')}<span class="pin-txt">${esc(txt)}</span>${p.rn ? `<span class="pin-ref">${esc(p.rn)}</span>` : ''}</div><div class="etq-palo"></div><div class="etq-punto"></div>`;
+  return `<div class="etq-caja">${simbMet(p.tipo !== 'dat' ? 'fosil' : p.met === 'U-Pb' && /detr/i.test(p.mat || '') ? 'U-Pb det' : p.met)}<span class="pin-txt">${esc(txt)}</span>${p.rn ? `<span class="pin-ref">${esc(p.rn)}</span>` : ''}</div><div class="etq-palo"></div><div class="etq-punto"></div>`;
 }
 function htmlEtiquetaFalla(fi) {
   const d = fallaDet(fi);
