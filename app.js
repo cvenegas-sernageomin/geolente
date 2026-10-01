@@ -878,7 +878,7 @@ function seleccionarEtiquetas(t) {
     if (CFG.pins) ESC.pins.forEach((p, i) => {
       if (!p.pos) return;
       const d = Math.hypot(p.pos.x - c0.x, p.pos.z - c0.z);
-      if (d > 10000 || !enPantalla(p.pos, sp5) || sp5.y < 70 || sp5.y > VH() - (ESC.modo === 'ar' ? 280 : 240)) return; // no bajo los diales
+      if (d > 15000 || !enPantalla(p.pos, sp5) || sp5.y < 90 || sp5.y > VH() - 100) return; // la caja va arriba del punto
       cerca.push({ i, d });
     });
     // primero las que se ven; si faltan, también las que quedan tras un cerro (con la línea punteada), como en la carta
@@ -912,6 +912,10 @@ function seleccionarEtiquetas(t) {
 }
 function posicionarEtiquetas(medir) {
   const colocadas = [], sp = { x: 0, y: 0 };
+  // las cajas no van debajo de los diales ni de la tarjeta de abajo (con la interfaz girada se omite: sus coordenadas son otras)
+  if (!/virt/.test(document.body.className)) for (const el of document.querySelectorAll('.diales, #mirando')) {
+    const r = el.getBoundingClientRect(); if (r.width) colocadas.push({ x0: r.left, x1: r.right, y0: r.top, y1: r.bottom });
+  }
   // las fallas primero (menos), luego unidades en orden de inserción
   const prio = k => k.startsWith('▲') ? 2 : k.startsWith('§') || k.startsWith('⌚') ? 1 : 0;
   const lista = [...ETQ.entries()].sort((a, b) => prio(b[0]) - prio(a[0]));
@@ -1644,41 +1648,6 @@ function dibujarPlano() {
     ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x + r, y + r * 0.8); ctx.lineTo(x - r, y + r * 0.8); ctx.closePath();
     ctx.fillStyle = k.volcan ? '#d4145a' : '#3a3a3a'; ctx.fill(); ctx.lineWidth = 1.5 * f; ctx.strokeStyle = '#fff'; ctx.stroke();
     ctx.lineWidth = 3 * f; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.strokeText(k.nombre, x, y - r - 4 * f); ctx.fillStyle = '#111'; ctx.fillText(k.nombre, x, y - r - 4 * f);
-  }
-  // dataciones y fósiles como en la carta (al acercar, para no tapar el plano): cuadrito negro, línea guía y caja
-  if (CFG.pins && PL.s >= 2) {
-    const cajas = [];
-    ctx.font = `600 ${11 * f}px Arial, Helvetica, sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    for (const p of ESC.pins) {
-      if (!p.pos) continue;
-      const [x, y] = plAPx(p.pos.x, -p.pos.z, W);
-      if (x < 0 || y < 0 || x > W || y > W) continue;
-      const txt = p.tipo === 'dat' ? txtEdad(p.txt) : (p.edad || p.txt), h = 17 * f, s = 11 * f;
-      const wt = ctx.measureText(txt).width, wr = p.rn ? ctx.measureText(p.rn).width + 8 * f : 0, w = 4 * f + s + 4 * f + wt + 4 * f + wr;
-      // la caja arriba a la derecha del punto; si choca, se prueba a la izquierda y abajo
-      let c = null;
-      for (const [ox, oy] of [[14, -30], [-14, -30], [14, 14], [-14, 14]]) {
-        const bx = ox > 0 ? x + ox * f : x + ox * f - w, by = oy < 0 ? y + oy * f : y + oy * f;
-        if (!cajas.some(q => bx < q[0] + q[2] + 3 && bx + w + 3 > q[0] && by < q[1] + q[3] + 3 && by + h + 3 > q[1])) { c = [bx, by, w, h]; break; }
-      }
-      if (!c) continue;
-      cajas.push(c);
-      const [bx, by] = c, ax = bx + (bx > x ? 0 : w), ay = by + (by > y ? 0 : h);
-      ctx.strokeStyle = '#111'; ctx.lineWidth = 1 * f;
-      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ax, ay); ctx.stroke();
-      ctx.fillStyle = '#111'; ctx.fillRect(x - 2.5 * f, y - 2.5 * f, 5 * f, 5 * f);
-      ctx.fillStyle = '#fff'; ctx.fillRect(bx, by, w, h); ctx.strokeRect(bx, by, w, h);
-      if (wr) { ctx.beginPath(); ctx.moveTo(bx + w - wr, by); ctx.lineTo(bx + w - wr, by + h); ctx.stroke(); }
-      ctx.save(); ctx.translate(bx + 4 * f, by + (h - s) / 2); ctx.scale(s / 14, s / 14); ctx.lineWidth = 1.3; ctx.fillStyle = "#111";
-      const d = SIMB_MET[p.tipo === 'dat' ? p.met : 'fosil'] || SIMB_MET['U-Pb'];
-      for (const m of d.matchAll(/d="([^"]+)"/g)) ctx.stroke(new Path2D(m[1]));
-      if (/<rect/.test(d)) ctx.strokeRect(1.5, 1.5, 11, 11);
-      if (/<circle/.test(d)) { ctx.beginPath(); ctx.arc(7, 7, 1.5, 0, 2 * Math.PI); ctx.fill(); }
-      ctx.restore();
-      ctx.fillStyle = '#111'; ctx.fillText(txt, bx + 8 * f + s, by + h / 2 + 0.5 * f);
-      if (wr) ctx.fillText(p.rn, bx + w - wr + 4 * f, by + h / 2 + 0.5 * f);
-    }
-    ctx.textBaseline = 'alphabetic';
   }
   // escala gráfica
   const mpp = 2 * A / PL.s / W, objetivo = 110 * f * mpp, paso = [100, 200, 500, 1000, 2000, 5000, 10000].find(v => v >= objetivo * 0.6) || 10000, Lp = paso / mpp;
