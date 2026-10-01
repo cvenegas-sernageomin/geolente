@@ -35,6 +35,7 @@ h1 span { color: var(--acento); }
 body[data-modo="explorar"] #escena { background: linear-gradient(#6fa6d6 0%, #bfd6ea 55%, #d9e4ec 100%); }
 #cam { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 body:not([data-modo="ar"]) #cam, body:not([data-modo="ar"]) .solo-ar { display: none; }
+body[data-modo="ar"] .solo-explorar { display: none; }
 #gl { position: absolute; inset: 0; width: 100%; height: 100%; }
 #etiquetas { position: absolute; inset: 0; pointer-events: none; }
 
@@ -324,3 +325,14 @@ body.calibrando #compas-num { left: 72%; bottom: calc(56px + var(--sib)); }
 #calib-panel { bottom: calc(66px + var(--sib)); }
 .calib-aviso { top: 58px; right: 90px; font-size: 12px; padding: 6px 9px; }
 }
+
+/* ---------- plano 2D para ubicarse con el dedo */
+#plano { position: fixed; inset: 0; z-index: 40; background: rgba(5, 9, 15, .72); display: flex; align-items: center; justify-content: center;
+  padding: calc(12px + var(--seg)) 12px calc(12px + var(--sib)); }
+.plano-caja { width: min(560px, 100%); max-height: 100%; display: flex; flex-direction: column; background: var(--fondo); border: 1px solid var(--borde);
+  border-radius: 16px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,.5); }
+.plano-caja header { position: relative; padding: 12px 48px 10px 14px; display: flex; flex-direction: column; gap: 2px; }
+.plano-caja header small { color: var(--suave); font-size: 12.5px; }
+#plano-cerrar { position: absolute; right: 8px; top: 8px; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--borde); background: var(--panel); }
+#plano-cv { display: block; width: 100%; aspect-ratio: 1; touch-action: none; cursor: crosshair; background: #8a8478; }
+#plano-pie { padding: 8px 14px 12px; font-size: 12.5px; color: var(--suave); min-height: 20px; }

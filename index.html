@@ -64,6 +64,7 @@
 
   <div class="lateral">
     <button id="btn-calibrar" class="ico solo-ar" aria-label="Ajustar alineación">🎯<small>Ajustar</small></button>
+    <button id="btn-plano" class="ico solo-explorar" aria-label="Ubicarte en el plano">📍<small>Ubicar</small></button>
     <button id="btn-capa" class="ico" aria-label="Capas: qué se dibuja sobre los cerros" aria-expanded="false">🗺️<small>Capas</small></button>
     <button id="btn-ajustes" class="ico" aria-label="Opciones">⚙️<small>Opciones</small></button>
     <div id="dial-op" class="dial-op" role="slider" tabindex="0" aria-label="Transparencia de la capa" aria-valuemin="15" aria-valuemax="95">
@@ -103,6 +104,14 @@
   <button id="pisando" hidden></button>
   <button id="mirando"><span class="mir-vacio">Apunta la mira ⊕ a un cerro</span></button>
 </section>
+
+<div id="plano" hidden role="dialog" aria-label="Plano para ubicarte">
+  <div class="plano-caja">
+    <header><b>Elige dónde pararte</b><small>Toca un punto del mapa · arrastra para elegir hacia dónde mirar</small><button id="plano-cerrar" aria-label="Cerrar">✕</button></header>
+    <canvas id="plano-cv"></canvas>
+    <footer id="plano-pie"></footer>
+  </div>
+</div>
 
 <div id="ficha" hidden>
   <article class="hoja">

@@ -1165,7 +1165,7 @@ async function abrirEn(lat, lon, modo, rumbo = 0, nombre = null) {
   if (!renderer) iniciarThree();
   for (const o of [terrenoColor, terrenoProf, grupoFallas, grupoPerfil, terrenoLejos]) if (o) { scene.remove(o); o.traverse?.(x => { x.geometry?.dispose(); x.material?.dispose(); }); }
   texMapa?.dispose(); texSat?.dispose(); texSat = null; cargandoSat = 0;
-  for (const d of texDet) d.t.dispose(); texDet = [];
+  for (const d of texDet) d.t.dispose(); texDet = []; sombraPlano = null;
   for (const [, e] of ETQ) e.el.remove(); ETQ.clear();
   try {
     cargando('Cargando el mapa geológico…');
@@ -1546,6 +1546,94 @@ function iniciarBuscador() {
   res.onclick = e => { const b = e.target.closest('[data-i]'); if (b) ir(lista[+b.dataset.i]); };
 }
 
+// ------------------------------------------------------------------ plano 2D: elegir dónde pararse con el dedo (modo explorar)
+// Muestra el cuadrado ±A visto desde arriba: el mismo mapa geológico de la textura (y los 1:50.000), con sombreado del relieve.
+// Tocar = pararse ahí; arrastrar = además mirar hacia donde se suelta el dedo.
+let sombraPlano = null; // relieve sombreado del lugar cargado (se calcula una vez por lugar)
+const PL = { e: 0, n: 0, yaw: 0, arrastrando: false, x0: 0, y0: 0 };
+function relieveSombreado(A) {
+  const N = 220, cv = document.createElement('canvas'); cv.width = cv.height = N;
+  const ctx = cv.getContext('2d'), img = ctx.createImageData(N, N), h = new Float32Array(N * N), paso = 2 * A / N;
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) h[j * N + i] = hLocal(-A + (i + 0.5) * paso, A - (j + 0.5) * paso);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const k = j * N + i, dx = (h[j * N + Math.min(N - 1, i + 1)] - h[j * N + Math.max(0, i - 1)]) / (2 * paso), dy = (h[Math.max(0, j - 1) * N + i] - h[Math.min(N - 1, j + 1) * N + i]) / (2 * paso);
+    // luz del noroeste, como los mapas impresos
+    const s = Math.max(0, Math.min(1, 0.55 + (-dx * 0.7 + dy * 0.7) * 1.4 / Math.sqrt(1 + dx * dx + dy * dy)));
+    const v = Math.round(255 * s); img.data[k * 4] = img.data[k * 4 + 1] = img.data[k * 4 + 2] = v; img.data[k * 4 + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  return cv;
+}
+function dibujarPlano() {
+  const cv = $('#plano-cv'), A = CFG.alcance, W = cv.width, ctx = cv.getContext('2d');
+  const aPx = (e, n) => [(e + A) / (2 * A) * W, (A - n) / (2 * A) * W];
+  ctx.clearRect(0, 0, W, W);
+  if (texMapa?.image) ctx.drawImage(texMapa.image, 0, 0, W, W);
+  for (const d of texDet) { const [u0, v0, u1, v1] = d.uv; ctx.drawImage(d.t.image, u0 * W, (1 - v1) * W, (u1 - u0) * W, (v1 - v0) * W); }
+  if (sombraPlano) { ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.6; ctx.imageSmoothingEnabled = true; ctx.drawImage(sombraPlano, 0, 0, W, W); ctx.restore(); }
+  // volcanes y cumbres más altas
+  const f = W / 560;
+  ctx.font = `600 ${12 * f}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.lineJoin = 'round';
+  // una por nombre (OSM y GeoNames repiten algunas) y separadas en el plano para que los nombres no se monten
+  const puestas = [], nombres = new Set();
+  for (const k of (ESC.cumbres || []).filter(k => k.nombre && Math.abs(k.pos.x) < A && Math.abs(k.pos.z) < A).sort((a, b) => (b.volcan - a.volcan) || (b.ele - a.ele))) {
+    if (puestas.length >= 12 || nombres.has(k.nombre)) continue;
+    const [x, y] = aPx(k.pos.x, -k.pos.z);
+    if (puestas.some(([a, b]) => Math.abs(a - x) < 90 * f && Math.abs(b - y) < 22 * f)) continue;
+    puestas.push([x, y]); nombres.add(k.nombre);
+    const r = (k.volcan ? 6 : 4.5) * f;
+    ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x + r, y + r * 0.8); ctx.lineTo(x - r, y + r * 0.8); ctx.closePath();
+    ctx.fillStyle = k.volcan ? '#d4145a' : '#3a3a3a'; ctx.fill(); ctx.lineWidth = 1.5 * f; ctx.strokeStyle = '#fff'; ctx.stroke();
+    ctx.lineWidth = 3 * f; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.strokeText(k.nombre, x, y - r - 4 * f); ctx.fillStyle = '#111'; ctx.fillText(k.nombre, x, y - r - 4 * f);
+  }
+  // posición y hacia dónde se mira (cono del campo visual)
+  const [x, y] = aPx(PL.e, PL.n), a = PL.yaw * Math.PI / 180, fov = (camera?.fov || 60) * (camera?.aspect || 1) * Math.PI / 180 / 2, L = 70 * f;
+  ctx.beginPath(); ctx.moveTo(x, y);
+  ctx.arc(x, y, L, a - Math.PI / 2 - fov, a - Math.PI / 2 + fov); ctx.closePath();
+  ctx.fillStyle = 'rgba(47,140,255,.28)'; ctx.fill(); ctx.strokeStyle = '#2f8cff'; ctx.lineWidth = 2 * f; ctx.stroke();
+  ctx.beginPath(); ctx.arc(x, y, 8 * f, 0, 2 * Math.PI); ctx.fillStyle = '#2f8cff'; ctx.fill(); ctx.lineWidth = 3 * f; ctx.strokeStyle = '#fff'; ctx.stroke();
+}
+function infoPlano(e, n) {
+  const [lon, lat] = aLL(e, n), cod = unidadEn(lon, lat), u = cod && UNI[cod];
+  const c = u && (CATEGORIAS[u.cat] || CATEGORIAS.sininfo);
+  $('#plano-pie').innerHTML = `${nf0.format(hLocal(e, n))} m de altura${u ? ` · ${c.ico} <b>${esc(u.titulo)}</b>` : ''} · rumbo ${nf0.format((PL.yaw + 360) % 360)}°`;
+}
+function abrirPlano() {
+  if (!ESC.listo || ESC.modo === 'ar') return;
+  if (!sombraPlano) sombraPlano = relieveSombreado(CFG.alcance);
+  PL.e = camera.position.x; PL.n = -camera.position.z; PL.yaw = VISTA.yaw;
+  const cv = $('#plano-cv'); $('#plano').hidden = false;
+  cv.width = cv.height = Math.min(1100, Math.round(cv.clientWidth * Math.min(devicePixelRatio, 2)));
+  dibujarPlano(); infoPlano(PL.e, PL.n);
+}
+function irA(e, n, yaw) {
+  $('#plano').hidden = true;
+  const A = CFG.alcance;
+  if (Math.hypot(e, n) > A * 0.6) { const [lon, lat] = aLL(e, n); abrirEn(lat, lon, 'explorar', ((yaw % 360) + 360) % 360 || 0.001); return; } // lejos del centro: se recarga el lugar alrededor del nuevo punto
+  camera.position.set(e, hLocal(e, n) + 25, -n);
+  VISTA.yaw = yaw; VISTA.pitch = -2;
+  calcularPerfil(generacion); actualizarPisando(); ultimaSeleccion = 0;
+  $('#lugar').textContent = 'Punto elegido en el plano';
+}
+function instalarPlano() {
+  const cv = $('#plano-cv'), A = () => CFG.alcance;
+  const aEN2 = ev => { const r = cv.getBoundingClientRect(); return [((ev.clientX - r.left) / r.width * 2 - 1) * A(), (1 - (ev.clientY - r.top) / r.height * 2) * A()]; };
+  cv.addEventListener('pointerdown', ev => {
+    cv.setPointerCapture(ev.pointerId); PL.arrastrando = true;
+    [PL.e, PL.n] = aEN2(ev); PL.x0 = ev.clientX; PL.y0 = ev.clientY;
+    dibujarPlano(); infoPlano(PL.e, PL.n);
+  });
+  cv.addEventListener('pointermove', ev => {
+    if (!PL.arrastrando) return;
+    const dx = ev.clientX - PL.x0, dy = ev.clientY - PL.y0;
+    if (Math.hypot(dx, dy) > 12) { PL.yaw = Math.atan2(dx, -dy) * 180 / Math.PI; dibujarPlano(); infoPlano(PL.e, PL.n); }
+  });
+  cv.addEventListener('pointerup', () => { if (!PL.arrastrando) return; PL.arrastrando = false; irA(PL.e, PL.n, PL.yaw); });
+  $('#plano-cerrar').onclick = () => { $('#plano').hidden = true; };
+  $('#plano').addEventListener('click', e => { if (e.target.id === 'plano') $('#plano').hidden = true; });
+  $('#btn-plano').onclick = abrirPlano;
+}
+
 // ------------------------------------------------------------------ interfaz
 function iniciarUI() {
   $('#lugares').innerHTML = LUGARES.map((l, i) => `<button data-i="${i}"><span class="t-ico">${l.ico}</span><span><b>${esc(l.n)}</b><small>${esc(l.d)}</small></span></button>`).join('');
@@ -1604,6 +1692,7 @@ function iniciarUI() {
   $('#btn-reset').onclick = () => { S.yawUsuario = 0; S.pitchUsuario = 0; S.iosCongelado = false; CFG.fovLargo = FOV_DEF; rFov.value = FOV_DEF; guardar('yaw', 0); guardar('pitch', 0); guardar('fov', FOV_DEF); ajustarTamano(); toast('Ajuste restablecido.'); };
   actualizarContador();
   instalarGestos();
+  instalarPlano();
   requestAnimationFrame(bucle);
 
   const sim = params.get('sim');
