@@ -336,3 +336,7 @@ body.calibrando #compas-num { left: 72%; bottom: calc(56px + var(--sib)); }
 #plano-cerrar { position: absolute; right: 8px; top: 8px; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--borde); background: var(--panel); }
 #plano-cv { display: block; width: 100%; aspect-ratio: 1; touch-action: none; cursor: crosshair; background: #8a8478; }
 #plano-pie { padding: 8px 14px 12px; font-size: 12.5px; color: var(--suave); min-height: 20px; }
+
+/* perilla de dron: misma forma que la de transparencia, en tonos de cielo */
+.dial-alt .d-relleno { background: linear-gradient(#bfe3ff, #2f8cff); }
+@media (max-height: 740px) { .dial-op .d-pista { height: 88px; } }

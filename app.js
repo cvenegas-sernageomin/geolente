@@ -21,6 +21,7 @@ const CFG = {
   perfil: leer('perfil') !== '0', cumbres: leer('cumbres') !== '0',
   capa: +(leer('capa') || 0), // 0 = mapa geológico, 1 = imagen satelital, 2 = satelital + geología
   detalle: leer('detalle') !== '0', pins: leer('pins') !== '0', // mapas detallados 1:50.000 y sus dataciones/fósiles
+  altura: +(leer('altura') || 25), // altura de la vista sobre el suelo en modo explorar (dron)
 };
 
 export const LUGARES = [
@@ -1196,7 +1197,7 @@ async function abrirEn(lat, lon, modo, rumbo = 0, nombre = null) {
     construirCandidatos(A);
     prepararCumbres(A);
     prepararPins(A);
-    camera.position.set(0, hLocal(0, 0) + (modo === 'ar' ? CFG.ojo : 25), 0); // explorar: vista de dron bajo, evita que el plano cercano corte el suelo
+    camera.position.set(0, hLocal(0, 0) + (modo === 'ar' ? CFG.ojo : CFG.altura), 0); // explorar: vista de dron (perilla 🚁), evita que el plano cercano corte el suelo
     if (modo !== 'ar') { VISTA.yaw = rumbo == null || rumbo === 0 && nombre ? mejorRumbo() : rumbo; VISTA.pitch = -2; }
     actualizarModoShader(); ajustarTamano();
     ESC.listo = true; cargando();
@@ -1371,36 +1372,53 @@ function fijarOpacidad(v) {
   v = Math.min(OP_MAX, Math.max(OP_MIN, Math.round(v * 100) / 100));
   CFG.opacidad = v; guardar('opacidad', v); $('#r-opacidad').value = v;
   if (terrenoColor) terrenoColor.material.uniforms.opacidad.value = calibrando ? Math.min(0.2, v) : v;
-  const f = (v - OP_MIN) / (OP_MAX - OP_MIN), d = $('#dial-op');
-  d.querySelector('.d-relleno').style.height = f * 100 + '%';
-  d.querySelector('.d-perilla').style.bottom = f * 100 + '%';
-  $('#dial-val').textContent = Math.round(v * 100) + ' %';
-  d.setAttribute('aria-valuenow', Math.round(v * 100));
+  pintarDial($('#dial-op'), (v - OP_MIN) / (OP_MAX - OP_MIN), Math.round(v * 100) + ' %', Math.round(v * 100));
 }
-// arrastre relativo (sirve igual con la interfaz girada en horizontal): subir = capa más fuerte; tocar la pista salta ahí
-function instalarDialOpacidad() {
-  const d = $('#dial-op'), pista = d.querySelector('.d-pista'); let ini = null;
+// Dial vertical genérico: f = posición 0–1. Arrastre relativo (sirve igual con la interfaz girada en horizontal);
+// tocar la pista salta ahí. leer() devuelve la f actual y fijar(f) aplica el valor.
+function instalarDial(d, leer, fijar, pasoTecla = 0.05) {
+  const pista = d.querySelector('.d-pista'); let ini = null;
   d.addEventListener('pointerdown', e => {
     e.stopPropagation(); d.setPointerCapture(e.pointerId); d.classList.add('arrastrando');
     const q = aVirtual(e.clientX, e.clientY);
-    let v0 = CFG.opacidad;
     if (e.target.closest('.d-pista') && !e.target.closest('.d-perilla')) {
       const r = pista.getBoundingClientRect(), c = aVirtual(r.left + r.width / 2, r.top + r.height / 2);
-      fijarOpacidad(OP_MIN + (0.5 + (c.y - q.y) / pista.offsetHeight) * (OP_MAX - OP_MIN)); v0 = CFG.opacidad;
+      fijar(Math.min(1, Math.max(0, 0.5 + (c.y - q.y) / pista.offsetHeight)));
     }
-    ini = { y: q.y, v: v0 };
+    ini = { y: q.y, f: leer() };
   });
   d.addEventListener('pointermove', e => {
     if (!ini) return;
     const q = aVirtual(e.clientX, e.clientY);
-    fijarOpacidad(ini.v + (ini.y - q.y) / pista.offsetHeight * (OP_MAX - OP_MIN));
+    fijar(Math.min(1, Math.max(0, ini.f + (ini.y - q.y) / pista.offsetHeight)));
   });
   const fin = () => { ini = null; d.classList.remove('arrastrando'); };
   d.addEventListener('pointerup', fin); d.addEventListener('pointercancel', fin);
   d.addEventListener('keydown', e => {
-    const k = { ArrowUp: 0.05, ArrowRight: 0.05, ArrowDown: -0.05, ArrowLeft: -0.05 }[e.key];
-    if (k) { e.preventDefault(); fijarOpacidad(CFG.opacidad + k); }
+    const k = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key];
+    if (k) { e.preventDefault(); fijar(Math.min(1, Math.max(0, leer() + k * pasoTecla))); }
   });
+}
+function pintarDial(d, f, texto, ahora) {
+  d.querySelector('.d-relleno').style.height = f * 100 + '%';
+  d.querySelector('.d-perilla').style.bottom = f * 100 + '%';
+  d.querySelector('small').textContent = texto; d.setAttribute('aria-valuenow', ahora);
+}
+function instalarDialOpacidad() {
+  instalarDial($('#dial-op'), () => (CFG.opacidad - OP_MIN) / (OP_MAX - OP_MIN), f => fijarOpacidad(OP_MIN + f * (OP_MAX - OP_MIN)));
+}
+// ------------------------------------------------------------------ altura de dron (modo explorar): 25 m a 3.000 m sobre el suelo, escala logarítmica
+const ALT_MIN = 25, ALT_MAX = 3000;
+const altF = h => Math.log(h / ALT_MIN) / Math.log(ALT_MAX / ALT_MIN), fAlt = f => ALT_MIN * (ALT_MAX / ALT_MIN) ** f;
+let tPerfilAlt = 0;
+function fijarAltura(h) {
+  h = Math.round(Math.min(ALT_MAX, Math.max(ALT_MIN, h)) / (h < 100 ? 5 : h < 1000 ? 10 : 50)) * (h < 100 ? 5 : h < 1000 ? 10 : 50);
+  CFG.altura = h; guardar('altura', h);
+  pintarDial($('#dial-alt'), altF(h), h < 1000 ? `${h} m` : `${nf1.format(h / 1000)} km`, h);
+  if (!ESC.listo || ESC.modo === 'ar' || !camera) return;
+  camera.position.y = hLocal(camera.position.x, -camera.position.z) + h;
+  ultimaSeleccion = 0;
+  clearTimeout(tPerfilAlt); tPerfilAlt = setTimeout(() => calcularPerfil(generacion), 450); // el perfil de crestas depende de la altura del ojo
 }
 function alternarCalibrar(on = !calibrando) {
   calibrando = on; document.body.classList.toggle('calibrando', on);
@@ -1610,7 +1628,7 @@ function irA(e, n, yaw) {
   $('#plano').hidden = true;
   const A = CFG.alcance;
   if (Math.hypot(e, n) > A * 0.6) { const [lon, lat] = aLL(e, n); abrirEn(lat, lon, 'explorar', ((yaw % 360) + 360) % 360 || 0.001); return; } // lejos del centro: se recarga el lugar alrededor del nuevo punto
-  camera.position.set(e, hLocal(e, n) + 25, -n);
+  camera.position.set(e, hLocal(e, n) + CFG.altura, -n);
   VISTA.yaw = yaw; VISTA.pitch = -2;
   calcularPerfil(generacion); actualizarPisando(); ultimaSeleccion = 0;
   $('#lugar').textContent = 'Punto elegido en el plano';
@@ -1671,6 +1689,7 @@ function iniciarUI() {
   const rOp = $('#r-opacidad'); rOp.value = CFG.opacidad;
   rOp.oninput = () => fijarOpacidad(+rOp.value);
   instalarDialOpacidad(); fijarOpacidad(CFG.opacidad);
+  instalarDial($('#dial-alt'), () => altF(CFG.altura), f => fijarAltura(fAlt(f)), 0.04); fijarAltura(CFG.altura);
   const rFov = $('#r-fov'); rFov.value = CFG.fovLargo;
   rFov.oninput = () => { CFG.fovLargo = +rFov.value; guardar('fov', rFov.value); ajustarTamano(); };
   const cF = $('#c-fallas'); cF.checked = CFG.fallas;
