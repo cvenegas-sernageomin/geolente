@@ -1,0 +1,1 @@
+{"version": "0.0.1", "configurations": [{"name": "geolente", "runtimeExecutable": "python", "runtimeArgs": ["-m", "http.server", "8765"], "port": 8765}, {"name": "mapas", "runtimeExecutable": "python", "runtimeArgs": ["tools/servidor_mapas.py", "8766"], "port": 8766}]}

@@ -1311,14 +1311,16 @@ function pasoEscala(sinCumbre) {
   if (sinCumbre) $('#calib-ref').textContent = 'Mejor si antes fijas una cumbre en el paso 1: el dibujo se estira alrededor de la mira ⊕. ';
   $('#calib-x').textContent = '×' + nf1.format(relieveX());
 }
+let tPaneo = 0;
 function instalarGestos() {
   const el = $('#escena'); let arr = null, pinza = null;
   el.addEventListener('pointerdown', e => {
-    if (e.target.closest('.etq, button, #ficha, .panel, #mirando, #pisando, #compas, #calib-panel, .dial-op')) return;
+    if (e.target.closest('.etq, button, #ficha, .panel, #mirando, #pisando, #compas, #calib-panel, .dial-op, .diales')) return;
     const conSensores = ESC.modo === 'ar' && S.tiene;
     const q = aVirtual(e.clientX, e.clientY);
     arr = { x: q.x, y: q.y, yaw: conSensores ? S.yawUsuario : VISTA.yaw, pitch: conSensores ? S.pitchUsuario : VISTA.pitch, x0: relieveX() };
     el.setPointerCapture(e.pointerId);
+    clearTimeout(tPaneo); document.body.classList.add('paneo');
   });
   el.addEventListener('pointermove', e => {
     if (!arr) return;
@@ -1335,7 +1337,7 @@ function instalarGestos() {
       VISTA.yaw = (arr.yaw - dx + 360) % 360; VISTA.pitch = Math.max(-45, Math.min(45, arr.pitch + dy));
     }
   });
-  const fin = () => { if (arr && ESC.modo === 'ar' && S.tiene && calibrando && calibPaso === 1) { guardar('yaw', S.yawUsuario.toFixed(2)); guardar('pitch', S.pitchUsuario.toFixed(2)); } arr = null; };
+  const fin = () => { if (arr && ESC.modo === 'ar' && S.tiene && calibrando && calibPaso === 1) { guardar('yaw', S.yawUsuario.toFixed(2)); guardar('pitch', S.pitchUsuario.toFixed(2)); } arr = null; clearTimeout(tPaneo); tPaneo = setTimeout(() => document.body.classList.remove('paneo'), 900); };
   el.addEventListener('pointerup', fin); el.addEventListener('pointercancel', fin);
   el.addEventListener('wheel', e => {
     if (ESC.modo === 'ar') return;
@@ -1719,12 +1721,11 @@ function iniciarUI() {
   };
   // paneles laterales: uno a la vez
   const panel = id => {
-    for (const [p, b] of [['#capas', '#btn-capa'], ['#ajustes', '#btn-ajustes']]) {
+    for (const [p, b] of [['#capas', '#btn-capa']]) {
       const abrir = p === id && !$(p).classList.contains('abierto');
       $(p).classList.toggle('abierto', abrir); $(b).classList.toggle('activo', abrir); $(b).setAttribute('aria-expanded', abrir);
     }
   };
-  $('#btn-ajustes').onclick = () => panel('#ajustes');
   $('#btn-capa').onclick = () => { actualizarInfoDetalle(); panel('#capas'); };
   $('#escena').addEventListener('pointerdown', e => { if (!e.target.closest('.panel, .lateral')) panel(null); });
   $('#ficha-cerrar').onclick = cerrarFicha;

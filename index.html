@@ -66,11 +66,12 @@
     <button id="btn-calibrar" class="ico solo-ar" aria-label="Ajustar alineación">🎯<small>Ajustar</small></button>
     <button id="btn-plano" class="ico solo-explorar" aria-label="Ubicarte en el plano">📍<small>Ubicar</small></button>
     <button id="btn-capa" class="ico" aria-label="Capas: qué se dibuja sobre los cerros" aria-expanded="false">🗺️<small>Capas</small></button>
-    <button id="btn-ajustes" class="ico" aria-label="Opciones">⚙️<small>Opciones</small></button>
+    <div class="diales">
     <div id="dial-op" class="dial-op" role="slider" tabindex="0" aria-label="Transparencia de la capa" aria-valuemin="15" aria-valuemax="95">
       <span class="d-ico" aria-hidden="true">◐</span><div class="d-pista"><i class="d-relleno"></i><b class="d-perilla"></b></div><small id="dial-val">50 %</small></div>
     <div id="dial-alt" class="dial-op dial-alt solo-explorar" role="slider" tabindex="0" aria-label="Altura de la vista sobre el suelo (dron), en metros" aria-valuemin="25" aria-valuemax="3000">
       <span class="d-ico" aria-hidden="true">🚁</span><div class="d-pista"><i class="d-relleno"></i><b class="d-perilla"></b></div><small>25 m</small></div>
+    </div>
   </div>
 
   <div id="capas" class="panel" role="dialog" aria-label="Capas">
@@ -88,9 +89,7 @@
     <label class="interr"><span>⛰️ Nombres de cumbres</span><input id="c-cumbres" type="checkbox"></label>
     <label class="interr"><span>〰️ Perfil de los cerros<small>líneas blancas</small></span><input id="c-perfil" type="checkbox"></label>
     <label>Transparencia <input id="r-opacidad" type="range" min="0.15" max="0.95" step="0.05"></label>
-  </div>
-
-  <div id="ajustes" class="panel" role="dialog" aria-label="Opciones">
+    <h4>Vista</h4>
     <label class="solo-ar">Tamaño del dibujo (campo visual) <input id="r-fov" type="range" min="18" max="110" step="0.5"></label>
     <label>Alcance
       <select id="s-alcance"><option value="10000">10 km</option><option value="25000">25 km</option><option value="40000">40 km</option></select></label>
