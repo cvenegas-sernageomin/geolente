@@ -1123,7 +1123,7 @@ function vigilarGPS() {
     $('#gps').textContent = `± ${nf0.format(p.coords.accuracy)} m`;
     if (Math.hypot(e, n) > 2500) { toast('Te moviste bastante: recargando el mapa de este lugar…'); abrirEn(p.coords.latitude, p.coords.longitude, 'ar'); return; }
     if (Math.hypot(e - camera.position.x, n + camera.position.z) > 25) {
-      camera.position.set(e, hLocal(e, n) + CFG.ojo, -n); actualizarPisando();
+      camera.position.set(e, hLocal(e, n) + CFG.ojo, -n);
       if (!perfilPos || Math.hypot(perfilPos.x - e, perfilPos.z + n) > 60) calcularPerfil(generacion);
     }
   }, () => { }, { enableHighAccuracy: true, maximumAge: 5000 });
@@ -1186,7 +1186,6 @@ async function abrirEn(lat, lon, modo, rumbo = 0, nombre = null) {
     actualizarModoShader(); ajustarTamano();
     ESC.listo = true; cargando();
     calcularPerfil(gen);
-    actualizarPisando();
     $('#lugar').textContent = modo === 'ar' ? 'Tu ubicación' : (nombre || LUGARES.find(l => Math.abs(l.lat - lat) < 1e-3 && Math.abs(l.lon - lon) < 1e-3)?.n || `${nf1.format(lat)}°, ${nf1.format(lon)}°`);
     if (!leer('visto-ayuda')) { mostrarAyuda(); guardar('visto-ayuda', '1'); }
     else if (texDet.length) toast(`🗺️ Mapa detallado 1:50.000 · ${texDet.map(d => d.M.titulo).join(' y ')} · SERNAGEOMIN`, 5000);
@@ -1194,15 +1193,6 @@ async function abrirEn(lat, lon, modo, rumbo = 0, nombre = null) {
     console.error(err); cargando(); toast('No se pudo cargar este lugar: ' + (err.message || err), 6000);
   }
 }
-function actualizarPisando() {
-  const [lon, lat] = aLL(camera.position.x, -camera.position.z), cod = unidadEn(lon, lat), el = $('#pisando');
-  if (!cod) { el.hidden = true; return; }
-  const u = UNI[cod], c = CATEGORIAS[u.cat] || CATEGORIAS.sininfo;
-  el.hidden = false; el.style.setProperty('--c', u.color);
-  el.innerHTML = `<small>Estás parado sobre</small> ${c.ico} ${esc(c.nombre)}`;
-  el.onclick = () => abrirFicha(cod);
-}
-
 // ------------------------------------------------------------------ bucle y controles
 const VISTA = { yaw: 0, pitch: 0 };
 function bucle(t) {
@@ -1315,7 +1305,7 @@ let tPaneo = 0;
 function instalarGestos() {
   const el = $('#escena'); let arr = null, pinza = null;
   el.addEventListener('pointerdown', e => {
-    if (e.target.closest('.etq, button, #ficha, .panel, #mirando, #pisando, #compas, #calib-panel, .dial-op, .diales')) return;
+    if (e.target.closest('.etq, button, #ficha, .panel, #mirando, #compas, #calib-panel, .dial-op, .diales')) return;
     const conSensores = ESC.modo === 'ar' && S.tiene;
     const q = aVirtual(e.clientX, e.clientY);
     arr = { x: q.x, y: q.y, yaw: conSensores ? S.yawUsuario : VISTA.yaw, pitch: conSensores ? S.pitchUsuario : VISTA.pitch, x0: relieveX() };
@@ -1364,19 +1354,21 @@ function fijarOpacidad(v) {
 // tocar la pista salta ahí. leer() devuelve la f actual y fijar(f) aplica el valor.
 function instalarDial(d, leer, fijar, pasoTecla = 0.05) {
   const pista = d.querySelector('.d-pista'); let ini = null;
+  const hz = () => pista.offsetWidth > pista.offsetHeight, largo = () => hz() ? pista.offsetWidth : pista.offsetHeight;
+  const avance = (q, o) => hz() ? q.x - o.x : o.y - q.y; // derecha o arriba = más
   d.addEventListener('pointerdown', e => {
     e.stopPropagation(); d.setPointerCapture(e.pointerId); d.classList.add('arrastrando');
     const q = aVirtual(e.clientX, e.clientY);
     if (e.target.closest('.d-pista') && !e.target.closest('.d-perilla')) {
       const r = pista.getBoundingClientRect(), c = aVirtual(r.left + r.width / 2, r.top + r.height / 2);
-      fijar(Math.min(1, Math.max(0, 0.5 + (c.y - q.y) / pista.offsetHeight)));
+      fijar(Math.min(1, Math.max(0, 0.5 + avance(q, c) / largo())));
     }
-    ini = { y: q.y, f: leer() };
+    ini = { x: q.x, y: q.y, f: leer() };
   });
   d.addEventListener('pointermove', e => {
     if (!ini) return;
     const q = aVirtual(e.clientX, e.clientY);
-    fijar(Math.min(1, Math.max(0, ini.f + (ini.y - q.y) / pista.offsetHeight)));
+    fijar(Math.min(1, Math.max(0, ini.f + avance(q, ini) / largo())));
   });
   const fin = () => { ini = null; d.classList.remove('arrastrando'); };
   d.addEventListener('pointerup', fin); d.addEventListener('pointercancel', fin);
@@ -1386,8 +1378,8 @@ function instalarDial(d, leer, fijar, pasoTecla = 0.05) {
   });
 }
 function pintarDial(d, f, texto, ahora) {
-  d.querySelector('.d-relleno').style.height = f * 100 + '%';
-  d.querySelector('.d-perilla').style.bottom = f * 100 + '%';
+  const hz = d.closest('.diales'), r = d.querySelector('.d-relleno').style, k = d.querySelector('.d-perilla').style;
+  r.height = hz ? '' : f * 100 + '%'; r.width = hz ? f * 100 + '%' : ''; k.bottom = hz ? '' : f * 100 + '%'; k.left = hz ? f * 100 + '%' : '';
   d.querySelector('small').textContent = texto; d.setAttribute('aria-valuenow', ahora);
 }
 function instalarDialOpacidad() {
@@ -1645,7 +1637,7 @@ function irA(e, n, yaw) {
   if (Math.hypot(e, n) > A * 0.6) { const [lon, lat] = aLL(e, n); abrirEn(lat, lon, 'explorar', ((yaw % 360) + 360) % 360 || 0.001); return; } // lejos del centro: se recarga el lugar alrededor del nuevo punto
   camera.position.set(e, hLocal(e, n) + CFG.altura, -n);
   VISTA.yaw = yaw; VISTA.pitch = -2;
-  calcularPerfil(generacion); actualizarPisando(); ultimaSeleccion = 0;
+  calcularPerfil(generacion); ultimaSeleccion = 0;
   $('#lugar').textContent = 'Punto elegido en el plano';
 }
 function zoomPlano(factor, x, y) { // zoom manteniendo fijo el punto (x, y) del canvas
